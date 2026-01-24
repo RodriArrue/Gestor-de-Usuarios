@@ -2,6 +2,9 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 
+// Importar rutas
+const authRoutes = require('./routes/auth');
+
 const app = express();
 
 // Middlewares
@@ -21,5 +24,8 @@ app.get('/', (req, res) => {
         version: '1.0.0'
     });
 });
+
+// Rutas de la API
+app.use('/api/auth', authRoutes);
 
 module.exports = app;
