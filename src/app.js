@@ -4,6 +4,8 @@ require('dotenv').config();
 
 // Importar rutas
 const authRoutes = require('./routes/auth');
+const roleRoutes = require('./routes/roles');
+const permissionRoutes = require('./routes/permissions');
 
 const app = express();
 
@@ -27,5 +29,8 @@ app.get('/', (req, res) => {
 
 // Rutas de la API
 app.use('/api/auth', authRoutes);
+app.use('/api/roles', roleRoutes);
+app.use('/api/permissions', permissionRoutes);
 
 module.exports = app;
+
