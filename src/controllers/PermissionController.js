@@ -1,0 +1,260 @@
+const PermissionService = require('../services/PermissionService');
+
+class PermissionController {
+    /**
+     * GET /api/permissions
+     * Obtener todos los permisos
+     */
+    async getAll(req, res) {
+        try {
+            const permissions = await PermissionService.getAllPermissions();
+
+            res.status(200).json({
+                success: true,
+                data: permissions,
+            });
+        } catch (error) {
+            res.status(500).json({
+                success: false,
+                message: error.message,
+            });
+        }
+    }
+
+    /**
+     * GET /api/permissions/:id
+     * Obtener permiso por ID
+     */
+    async getById(req, res) {
+        try {
+            const permission = await PermissionService.getPermissionById(req.params.id);
+
+            res.status(200).json({
+                success: true,
+                data: permission,
+            });
+        } catch (error) {
+            res.status(404).json({
+                success: false,
+                message: error.message,
+            });
+        }
+    }
+
+    /**
+     * POST /api/permissions
+     * Crear un nuevo permiso
+     */
+    async create(req, res) {
+        try {
+            const { name, description, resource, action } = req.body;
+
+            if (!name || !resource || !action) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'name, resource y action son requeridos',
+                });
+            }
+
+            const validActions = ['create', 'read', 'update', 'delete', 'manage'];
+            if (!validActions.includes(action)) {
+                return res.status(400).json({
+                    success: false,
+                    message: `action debe ser uno de: ${validActions.join(', ')}`,
+                });
+            }
+
+            const permission = await PermissionService.createPermission({
+                name,
+                description,
+                resource,
+                action,
+            });
+
+            res.status(201).json({
+                success: true,
+                message: 'Permiso creado exitosamente',
+                data: permission,
+            });
+        } catch (error) {
+            res.status(400).json({
+                success: false,
+                message: error.message,
+            });
+        }
+    }
+
+    /**
+     * PUT /api/permissions/:id
+     * Actualizar un permiso
+     */
+    async update(req, res) {
+        try {
+            const { name, description, resource, action } = req.body;
+
+            if (action) {
+                const validActions = ['create', 'read', 'update', 'delete', 'manage'];
+                if (!validActions.includes(action)) {
+                    return res.status(400).json({
+                        success: false,
+                        message: `action debe ser uno de: ${validActions.join(', ')}`,
+                    });
+                }
+            }
+
+            const permission = await PermissionService.updatePermission(req.params.id, {
+                name,
+                description,
+                resource,
+                action,
+            });
+
+            res.status(200).json({
+                success: true,
+                message: 'Permiso actualizado exitosamente',
+                data: permission,
+            });
+        } catch (error) {
+            res.status(400).json({
+                success: false,
+                message: error.message,
+            });
+        }
+    }
+
+    /**
+     * DELETE /api/permissions/:id
+     * Eliminar un permiso
+     */
+    async delete(req, res) {
+        try {
+            const result = await PermissionService.deletePermission(req.params.id);
+
+            res.status(200).json({
+                success: true,
+                message: result.message,
+            });
+        } catch (error) {
+            res.status(400).json({
+                success: false,
+                message: error.message,
+            });
+        }
+    }
+
+    /**
+     * POST /api/permissions/assign
+     * Asignar permiso a un rol
+     */
+    async assignToRole(req, res) {
+        try {
+            const { roleId, permissionId } = req.body;
+
+            if (!roleId || !permissionId) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'roleId y permissionId son requeridos',
+                });
+            }
+
+            const result = await PermissionService.assignPermissionToRole(roleId, permissionId);
+
+            res.status(200).json({
+                success: true,
+                message: result.message,
+                data: result,
+            });
+        } catch (error) {
+            res.status(400).json({
+                success: false,
+                message: error.message,
+            });
+        }
+    }
+
+    /**
+     * POST /api/permissions/remove
+     * Remover permiso de un rol
+     */
+    async removeFromRole(req, res) {
+        try {
+            const { roleId, permissionId } = req.body;
+
+            if (!roleId || !permissionId) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'roleId y permissionId son requeridos',
+                });
+            }
+
+            const result = await PermissionService.removePermissionFromRole(roleId, permissionId);
+
+            res.status(200).json({
+                success: true,
+                message: result.message,
+                data: result,
+            });
+        } catch (error) {
+            res.status(400).json({
+                success: false,
+                message: error.message,
+            });
+        }
+    }
+
+    /**
+     * GET /api/permissions/role/:roleId
+     * Obtener permisos de un rol
+     */
+    async getRolePermissions(req, res) {
+        try {
+            const permissions = await PermissionService.getRolePermissions(req.params.roleId);
+
+            res.status(200).json({
+                success: true,
+                data: permissions,
+            });
+        } catch (error) {
+            res.status(404).json({
+                success: false,
+                message: error.message,
+            });
+        }
+    }
+
+    /**
+     * POST /api/permissions/role/:roleId/bulk
+     * Asignar múltiples permisos a un rol
+     */
+    async assignBulkToRole(req, res) {
+        try {
+            const { roleId } = req.params;
+            const { permissionIds } = req.body;
+
+            if (!permissionIds || !Array.isArray(permissionIds)) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'permissionIds debe ser un array',
+                });
+            }
+
+            const result = await PermissionService.assignMultiplePermissionsToRole(
+                roleId,
+                permissionIds
+            );
+
+            res.status(200).json({
+                success: true,
+                message: result.message,
+                data: result,
+            });
+        } catch (error) {
+            res.status(400).json({
+                success: false,
+                message: error.message,
+            });
+        }
+    }
+}
+
+module.exports = new PermissionController();
