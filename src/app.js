@@ -8,12 +8,18 @@ const userRoutes = require('./routes/users');
 const roleRoutes = require('./routes/roles');
 const permissionRoutes = require('./routes/permissions');
 
+// Importar middleware de auditoría
+const { auditMiddleware } = require('./middlewares/audit');
+
 const app = express();
 
 // Middlewares
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Middleware de auditoría (después del parsing, antes de las rutas)
+app.use(auditMiddleware);
 
 // Health check
 app.get('/health', (req, res) => {
