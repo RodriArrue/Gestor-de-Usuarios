@@ -1,34 +1,31 @@
 const AuthService = require('../services/AuthService');
+const { UnauthorizedError, ForbiddenError } = require('../errors/AppError');
 
 /**
  * Middleware para verificar JWT y proteger rutas
  */
 const authMiddleware = async (req, res, next) => {
     try {
-        // Obtener token del header
         const authHeader = req.headers.authorization;
 
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            return res.status(401).json({
-                success: false,
-                message: 'Token de acceso no proporcionado',
-            });
+            throw new UnauthorizedError('Token de acceso no proporcionado');
         }
 
         const token = authHeader.split(' ')[1];
 
-        // Verificar token
         const decoded = AuthService.verifyToken(token);
 
-        // Agregar usuario al request
         req.user = decoded;
 
         next();
     } catch (error) {
-        return res.status(401).json({
-            success: false,
-            message: 'Token inválido o expirado',
-        });
+        // Si ya es un AppError (ej: UnauthorizedError de verifyToken), pasarlo
+        // Si es otro error (JWT malformed, etc.), convertirlo
+        if (error.isOperational) {
+            return next(error);
+        }
+        return next(new UnauthorizedError('Token inválido o expirado'));
     }
 };
 
@@ -42,31 +39,21 @@ const requireRoles = (...allowedRoles) => {
             const user = await AuthService.getUserById(req.user.id);
 
             if (!user.roles || user.roles.length === 0) {
-                return res.status(403).json({
-                    success: false,
-                    message: 'Acceso denegado: sin roles asignados',
-                });
+                throw new ForbiddenError('Acceso denegado: sin roles asignados');
             }
 
             const userRoles = user.roles.map(role => role.name);
             const hasPermission = allowedRoles.some(role => userRoles.includes(role));
 
             if (!hasPermission) {
-                return res.status(403).json({
-                    success: false,
-                    message: 'Acceso denegado: rol insuficiente',
-                });
+                throw new ForbiddenError('Acceso denegado: rol insuficiente');
             }
 
-            // Agregar roles al request para uso posterior
             req.userRoles = userRoles;
 
             next();
         } catch (error) {
-            return res.status(500).json({
-                success: false,
-                message: 'Error al verificar roles',
-            });
+            next(error);
         }
     };
 };
@@ -81,7 +68,6 @@ const requirePermission = (resource, action) => {
         try {
             const { User, Role, Permission } = require('../models');
 
-            // Obtener usuario con roles y permisos
             const user = await User.findByPk(req.user.id, {
                 include: [{
                     model: Role,
@@ -96,20 +82,13 @@ const requirePermission = (resource, action) => {
             });
 
             if (!user) {
-                return res.status(401).json({
-                    success: false,
-                    message: 'Usuario no encontrado',
-                });
+                throw new UnauthorizedError('Usuario no encontrado');
             }
 
             if (!user.roles || user.roles.length === 0) {
-                return res.status(403).json({
-                    success: false,
-                    message: 'Acceso denegado: sin roles asignados',
-                });
+                throw new ForbiddenError('Acceso denegado: sin roles asignados');
             }
 
-            // Recopilar todos los permisos del usuario
             const userPermissions = [];
             for (const role of user.roles) {
                 if (role.permissions) {
@@ -122,31 +101,21 @@ const requirePermission = (resource, action) => {
                 }
             }
 
-            // Verificar si tiene el permiso requerido
-            // 'manage' es un permiso especial que incluye todas las acciones
             const hasPermission = userPermissions.some(
                 (p) =>
                     (p.resource === resource && (p.action === action || p.action === 'manage')) ||
-                    (p.resource === '*' && p.action === 'manage') // Super admin
+                    (p.resource === '*' && p.action === 'manage')
             );
 
             if (!hasPermission) {
-                return res.status(403).json({
-                    success: false,
-                    message: `Acceso denegado: permiso '${action}' sobre '${resource}' requerido`,
-                });
+                throw new ForbiddenError(`Acceso denegado: permiso '${action}' sobre '${resource}' requerido`);
             }
 
-            // Agregar permisos al request para uso posterior
             req.userPermissions = userPermissions;
 
             next();
         } catch (error) {
-            console.error('Error al verificar permisos:', error);
-            return res.status(500).json({
-                success: false,
-                message: 'Error al verificar permisos',
-            });
+            next(error);
         }
     };
 };

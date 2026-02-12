@@ -134,7 +134,7 @@ describe('Auth API Integration Tests', () => {
                     password: 'password123',
                 });
 
-            expect(res.status).toBe(400);
+            expect(res.status).toBe(409);
             expect(res.body.message).toContain('email ya está registrado');
         });
     });

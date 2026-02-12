@@ -1,37 +1,34 @@
 const bcrypt = require('bcryptjs');
 const { User, Role } = require('../models');
 const { Op } = require('sequelize');
+const { NotFoundError, ConflictError, BadRequestError } = require('../errors/AppError');
 
 class UserService {
     /**
      * Crear un nuevo usuario (solo ADMIN)
      */
     async createUser({ username, email, password, firstName, lastName, roleIds }) {
-        // Verificar si el email ya existe
         const existingEmail = await User.findOne({
             where: { email },
-            paranoid: false, // Incluir usuarios eliminados
+            paranoid: false,
         });
 
         if (existingEmail) {
-            throw new Error('El email ya está registrado');
+            throw new ConflictError('El email ya está registrado');
         }
 
-        // Verificar si el username ya existe
         const existingUsername = await User.findOne({
             where: { username },
             paranoid: false,
         });
 
         if (existingUsername) {
-            throw new Error('El nombre de usuario ya está en uso');
+            throw new ConflictError('El nombre de usuario ya está en uso');
         }
 
-        // Hash de la contraseña
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        // Crear usuario
         const user = await User.create({
             username,
             email,
@@ -40,21 +37,18 @@ class UserService {
             lastName,
         });
 
-        // Asignar roles si se proporcionaron
         if (roleIds && roleIds.length > 0) {
             const roles = await Role.findAll({
                 where: { id: roleIds },
             });
             await user.addRoles(roles);
         } else {
-            // Asignar rol por defecto (user)
             const defaultRole = await Role.findOne({ where: { name: 'user' } });
             if (defaultRole) {
                 await user.addRole(defaultRole);
             }
         }
 
-        // Recargar usuario con roles
         await user.reload({
             include: [{
                 model: Role,
@@ -74,12 +68,10 @@ class UserService {
 
         const whereClause = {};
 
-        // Filtrar por activos si no se incluyen inactivos
         if (!includeInactive) {
             whereClause.isActive = true;
         }
 
-        // Búsqueda por username o email
         if (search) {
             whereClause[Op.or] = [
                 { username: { [Op.iLike]: `%${search}%` } },
@@ -127,7 +119,7 @@ class UserService {
         });
 
         if (!user) {
-            throw new Error('Usuario no encontrado');
+            throw new NotFoundError('Usuario no encontrado');
         }
 
         return user;
@@ -135,22 +127,20 @@ class UserService {
 
     /**
      * Desactivar usuario (soft delete)
-     * Establece isActive = false
      */
     async deactivateUser(id, currentUserId) {
-        // Evitar que un usuario se desactive a sí mismo
         if (id === currentUserId) {
-            throw new Error('No puedes desactivarte a ti mismo');
+            throw new BadRequestError('No puedes desactivarte a ti mismo');
         }
 
         const user = await User.findByPk(id);
 
         if (!user) {
-            throw new Error('Usuario no encontrado');
+            throw new NotFoundError('Usuario no encontrado');
         }
 
         if (!user.isActive) {
-            throw new Error('El usuario ya está desactivado');
+            throw new BadRequestError('El usuario ya está desactivado');
         }
 
         await user.update({ isActive: false });
@@ -171,11 +161,11 @@ class UserService {
         const user = await User.findByPk(id);
 
         if (!user) {
-            throw new Error('Usuario no encontrado');
+            throw new NotFoundError('Usuario no encontrado');
         }
 
         if (user.isActive) {
-            throw new Error('El usuario ya está activo');
+            throw new BadRequestError('El usuario ya está activo');
         }
 
         await user.update({ isActive: true });

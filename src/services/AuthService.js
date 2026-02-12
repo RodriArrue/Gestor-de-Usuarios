@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { User, Role } = require('../models');
+const { UnauthorizedError, ConflictError, NotFoundError } = require('../errors/AppError');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '24h';
@@ -10,13 +11,12 @@ class AuthService {
      * Registrar un nuevo usuario
      */
     async register({ username, email, password, firstName, lastName }) {
-        // Verificar si el usuario ya existe
         const existingUser = await User.findOne({
             where: { email },
         });
 
         if (existingUser) {
-            throw new Error('El email ya está registrado');
+            throw new ConflictError('El email ya está registrado');
         }
 
         const existingUsername = await User.findOne({
@@ -24,14 +24,12 @@ class AuthService {
         });
 
         if (existingUsername) {
-            throw new Error('El nombre de usuario ya está en uso');
+            throw new ConflictError('El nombre de usuario ya está en uso');
         }
 
-        // Hash de la contraseña
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        // Crear usuario
         const user = await User.create({
             username,
             email,
@@ -40,13 +38,11 @@ class AuthService {
             lastName,
         });
 
-        // Asignar rol por defecto (user) si existe
         const defaultRole = await Role.findOne({ where: { name: 'user' } });
         if (defaultRole) {
             await user.addRole(defaultRole);
         }
 
-        // Generar token
         const token = this.generateToken(user);
 
         return {
@@ -59,7 +55,6 @@ class AuthService {
      * Iniciar sesión
      */
     async login({ email, password }) {
-        // Buscar usuario por email
         const user = await User.findOne({
             where: { email },
             include: [{
@@ -70,23 +65,20 @@ class AuthService {
         });
 
         if (!user) {
-            throw new Error('Credenciales inválidas');
+            throw new UnauthorizedError('Credenciales inválidas');
         }
 
         if (!user.isActive) {
-            throw new Error('Usuario desactivado');
+            throw new UnauthorizedError('Usuario desactivado');
         }
 
-        // Verificar contraseña
         const isValidPassword = await bcrypt.compare(password, user.password);
         if (!isValidPassword) {
-            throw new Error('Credenciales inválidas');
+            throw new UnauthorizedError('Credenciales inválidas');
         }
 
-        // Actualizar último login
         await user.update({ lastLogin: new Date() });
 
-        // Generar token
         const token = this.generateToken(user);
 
         return {
@@ -117,7 +109,7 @@ class AuthService {
         try {
             return jwt.verify(token, JWT_SECRET);
         } catch (error) {
-            throw new Error('Token inválido o expirado');
+            throw new UnauthorizedError('Token inválido o expirado');
         }
     }
 
@@ -134,7 +126,7 @@ class AuthService {
         });
 
         if (!user) {
-            throw new Error('Usuario no encontrado');
+            throw new NotFoundError('Usuario no encontrado');
         }
 
         return this.sanitizeUser(user);

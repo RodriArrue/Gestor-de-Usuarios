@@ -1,4 +1,5 @@
 const { Role, User, Permission } = require('../models');
+const { NotFoundError, ConflictError } = require('../errors/AppError');
 
 class RoleService {
     /**
@@ -28,7 +29,7 @@ class RoleService {
         });
 
         if (!role) {
-            throw new Error('Rol no encontrado');
+            throw new NotFoundError('Rol no encontrado');
         }
 
         return role;
@@ -41,7 +42,7 @@ class RoleService {
         const existingRole = await Role.findOne({ where: { name } });
 
         if (existingRole) {
-            throw new Error('Ya existe un rol con ese nombre');
+            throw new ConflictError('Ya existe un rol con ese nombre');
         }
 
         return await Role.create({
@@ -60,7 +61,7 @@ class RoleService {
         if (name && name !== role.name) {
             const existingRole = await Role.findOne({ where: { name } });
             if (existingRole) {
-                throw new Error('Ya existe un rol con ese nombre');
+                throw new ConflictError('Ya existe un rol con ese nombre');
             }
         }
 
@@ -88,18 +89,17 @@ class RoleService {
     async assignRoleToUser(userId, roleId) {
         const user = await User.findByPk(userId);
         if (!user) {
-            throw new Error('Usuario no encontrado');
+            throw new NotFoundError('Usuario no encontrado');
         }
 
         const role = await Role.findByPk(roleId);
         if (!role) {
-            throw new Error('Rol no encontrado');
+            throw new NotFoundError('Rol no encontrado');
         }
 
-        // Verificar si ya tiene el rol asignado
         const hasRole = await user.hasRole(role);
         if (hasRole) {
-            throw new Error('El usuario ya tiene este rol asignado');
+            throw new ConflictError('El usuario ya tiene este rol asignado');
         }
 
         await user.addRole(role);
@@ -123,18 +123,17 @@ class RoleService {
     async removeRoleFromUser(userId, roleId) {
         const user = await User.findByPk(userId);
         if (!user) {
-            throw new Error('Usuario no encontrado');
+            throw new NotFoundError('Usuario no encontrado');
         }
 
         const role = await Role.findByPk(roleId);
         if (!role) {
-            throw new Error('Rol no encontrado');
+            throw new NotFoundError('Rol no encontrado');
         }
 
-        // Verificar si tiene el rol asignado
         const hasRole = await user.hasRole(role);
         if (!hasRole) {
-            throw new Error('El usuario no tiene este rol asignado');
+            throw new ConflictError('El usuario no tiene este rol asignado');
         }
 
         await user.removeRole(role);
@@ -170,7 +169,7 @@ class RoleService {
         });
 
         if (!user) {
-            throw new Error('Usuario no encontrado');
+            throw new NotFoundError('Usuario no encontrado');
         }
 
         return user.roles;
@@ -190,7 +189,7 @@ class RoleService {
         });
 
         if (!role) {
-            throw new Error('Rol no encontrado');
+            throw new NotFoundError('Rol no encontrado');
         }
 
         return role.users;

@@ -17,6 +17,7 @@ jest.mock('../../../src/models', () => {
 const AuthService = require('../../../src/services/AuthService');
 const { User } = require('../../../src/models');
 const { authMiddleware, requireRoles, requirePermission } = require('../../../src/middlewares/auth');
+const { UnauthorizedError, ForbiddenError } = require('../../../src/errors/AppError');
 
 // Helpers para crear mocks de req/res/next
 const mockRequest = (overrides = {}) => ({
@@ -55,26 +56,22 @@ describe('Auth Middleware', () => {
 
             await authMiddleware(req, res, next);
 
-            expect(next).toHaveBeenCalled();
+            expect(next).toHaveBeenCalledWith();
             expect(req.user).toEqual(decoded);
         });
 
-        it('debe retornar 401 si no hay token', async () => {
+        it('debe llamar a next con UnauthorizedError si no hay token', async () => {
             const req = mockRequest();
             const res = mockResponse();
             const next = mockNext();
 
             await authMiddleware(req, res, next);
 
-            expect(res.status).toHaveBeenCalledWith(401);
-            expect(res.json).toHaveBeenCalledWith({
-                success: false,
-                message: 'Token de acceso no proporcionado',
-            });
-            expect(next).not.toHaveBeenCalled();
+            expect(next).toHaveBeenCalledWith(expect.any(UnauthorizedError));
+            expect(next.mock.calls[0][0].message).toBe('Token de acceso no proporcionado');
         });
 
-        it('debe retornar 401 si el header no empieza con Bearer', async () => {
+        it('debe llamar a next con UnauthorizedError si el header no empieza con Bearer', async () => {
             const req = mockRequest({
                 headers: { authorization: 'Basic some-token' },
             });
@@ -83,13 +80,12 @@ describe('Auth Middleware', () => {
 
             await authMiddleware(req, res, next);
 
-            expect(res.status).toHaveBeenCalledWith(401);
-            expect(next).not.toHaveBeenCalled();
+            expect(next).toHaveBeenCalledWith(expect.any(UnauthorizedError));
         });
 
-        it('debe retornar 401 si el token es inválido', async () => {
+        it('debe llamar a next con UnauthorizedError si el token es inválido', async () => {
             AuthService.verifyToken.mockImplementation(() => {
-                throw new Error('Token inválido o expirado');
+                throw new Error('jwt malformed');
             });
 
             const req = mockRequest({
@@ -100,11 +96,8 @@ describe('Auth Middleware', () => {
 
             await authMiddleware(req, res, next);
 
-            expect(res.status).toHaveBeenCalledWith(401);
-            expect(res.json).toHaveBeenCalledWith({
-                success: false,
-                message: 'Token inválido o expirado',
-            });
+            expect(next).toHaveBeenCalledWith(expect.any(UnauthorizedError));
+            expect(next.mock.calls[0][0].message).toBe('Token inválido o expirado');
         });
     });
 
@@ -125,11 +118,11 @@ describe('Auth Middleware', () => {
 
             await middleware(req, res, next);
 
-            expect(next).toHaveBeenCalled();
+            expect(next).toHaveBeenCalledWith();
             expect(req.userRoles).toContain('admin');
         });
 
-        it('debe retornar 403 si el usuario no tiene roles asignados', async () => {
+        it('debe llamar a next con ForbiddenError si el usuario no tiene roles asignados', async () => {
             AuthService.getUserById.mockResolvedValue({
                 id: 'uuid-123',
                 roles: [],
@@ -142,14 +135,11 @@ describe('Auth Middleware', () => {
 
             await middleware(req, res, next);
 
-            expect(res.status).toHaveBeenCalledWith(403);
-            expect(res.json).toHaveBeenCalledWith({
-                success: false,
-                message: 'Acceso denegado: sin roles asignados',
-            });
+            expect(next).toHaveBeenCalledWith(expect.any(ForbiddenError));
+            expect(next.mock.calls[0][0].message).toBe('Acceso denegado: sin roles asignados');
         });
 
-        it('debe retornar 403 si el usuario tiene un rol insuficiente', async () => {
+        it('debe llamar a next con ForbiddenError si el usuario tiene un rol insuficiente', async () => {
             AuthService.getUserById.mockResolvedValue({
                 id: 'uuid-123',
                 roles: [{ name: 'user' }],
@@ -162,14 +152,11 @@ describe('Auth Middleware', () => {
 
             await middleware(req, res, next);
 
-            expect(res.status).toHaveBeenCalledWith(403);
-            expect(res.json).toHaveBeenCalledWith({
-                success: false,
-                message: 'Acceso denegado: rol insuficiente',
-            });
+            expect(next).toHaveBeenCalledWith(expect.any(ForbiddenError));
+            expect(next.mock.calls[0][0].message).toBe('Acceso denegado: rol insuficiente');
         });
 
-        it('debe retornar 500 si hay un error interno', async () => {
+        it('debe llamar a next con error si hay un error interno', async () => {
             AuthService.getUserById.mockRejectedValue(new Error('DB Error'));
 
             const middleware = requireRoles('admin');
@@ -179,7 +166,8 @@ describe('Auth Middleware', () => {
 
             await middleware(req, res, next);
 
-            expect(res.status).toHaveBeenCalledWith(500);
+            expect(next).toHaveBeenCalledWith(expect.any(Error));
+            expect(next.mock.calls[0][0].message).toBe('DB Error');
         });
     });
 
@@ -207,7 +195,7 @@ describe('Auth Middleware', () => {
 
             await middleware(req, res, next);
 
-            expect(next).toHaveBeenCalled();
+            expect(next).toHaveBeenCalledWith();
             expect(req.userPermissions).toBeDefined();
         });
 
@@ -230,7 +218,7 @@ describe('Auth Middleware', () => {
 
             await middleware(req, res, next);
 
-            expect(next).toHaveBeenCalled();
+            expect(next).toHaveBeenCalledWith();
         });
 
         it('debe permitir acceso con super admin (* manage)', async () => {
@@ -252,10 +240,10 @@ describe('Auth Middleware', () => {
 
             await middleware(req, res, next);
 
-            expect(next).toHaveBeenCalled();
+            expect(next).toHaveBeenCalledWith();
         });
 
-        it('debe retornar 403 si el usuario no tiene el permiso', async () => {
+        it('debe llamar a next con ForbiddenError si el usuario no tiene el permiso', async () => {
             const mockUser = {
                 id: 'uuid-123',
                 roles: [{
@@ -274,10 +262,10 @@ describe('Auth Middleware', () => {
 
             await middleware(req, res, next);
 
-            expect(res.status).toHaveBeenCalledWith(403);
+            expect(next).toHaveBeenCalledWith(expect.any(ForbiddenError));
         });
 
-        it('debe retornar 401 si el usuario no existe', async () => {
+        it('debe llamar a next con UnauthorizedError si el usuario no existe', async () => {
             User.findByPk.mockResolvedValue(null);
 
             const middleware = requirePermission('users', 'read');
@@ -287,10 +275,10 @@ describe('Auth Middleware', () => {
 
             await middleware(req, res, next);
 
-            expect(res.status).toHaveBeenCalledWith(401);
+            expect(next).toHaveBeenCalledWith(expect.any(UnauthorizedError));
         });
 
-        it('debe retornar 403 si el usuario no tiene roles', async () => {
+        it('debe llamar a next con ForbiddenError si el usuario no tiene roles', async () => {
             const mockUser = { id: 'uuid-123', roles: [] };
             User.findByPk.mockResolvedValue(mockUser);
 
@@ -301,7 +289,7 @@ describe('Auth Middleware', () => {
 
             await middleware(req, res, next);
 
-            expect(res.status).toHaveBeenCalledWith(403);
+            expect(next).toHaveBeenCalledWith(expect.any(ForbiddenError));
         });
     });
 });

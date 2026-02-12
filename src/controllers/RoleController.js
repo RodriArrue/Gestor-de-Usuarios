@@ -5,7 +5,7 @@ class RoleController {
      * GET /api/roles
      * Obtener todos los roles
      */
-    async getAll(req, res) {
+    async getAll(req, res, next) {
         try {
             const roles = await RoleService.getAllRoles();
 
@@ -14,10 +14,7 @@ class RoleController {
                 data: roles,
             });
         } catch (error) {
-            res.status(500).json({
-                success: false,
-                message: error.message,
-            });
+            next(error);
         }
     }
 
@@ -25,7 +22,7 @@ class RoleController {
      * GET /api/roles/:id
      * Obtener rol por ID
      */
-    async getById(req, res) {
+    async getById(req, res, next) {
         try {
             const role = await RoleService.getRoleById(req.params.id);
 
@@ -34,10 +31,7 @@ class RoleController {
                 data: role,
             });
         } catch (error) {
-            res.status(404).json({
-                success: false,
-                message: error.message,
-            });
+            next(error);
         }
     }
 
@@ -45,7 +39,7 @@ class RoleController {
      * POST /api/roles
      * Crear un nuevo rol
      */
-    async create(req, res) {
+    async create(req, res, next) {
         try {
             const { name, description, isActive } = req.body;
 
@@ -61,10 +55,7 @@ class RoleController {
                 data: role,
             });
         } catch (error) {
-            res.status(400).json({
-                success: false,
-                message: error.message,
-            });
+            next(error);
         }
     }
 
@@ -72,7 +63,7 @@ class RoleController {
      * PUT /api/roles/:id
      * Actualizar un rol
      */
-    async update(req, res) {
+    async update(req, res, next) {
         try {
             const { name, description, isActive } = req.body;
 
@@ -88,10 +79,7 @@ class RoleController {
                 data: role,
             });
         } catch (error) {
-            res.status(400).json({
-                success: false,
-                message: error.message,
-            });
+            next(error);
         }
     }
 
@@ -99,7 +87,7 @@ class RoleController {
      * DELETE /api/roles/:id
      * Eliminar un rol
      */
-    async delete(req, res) {
+    async delete(req, res, next) {
         try {
             const result = await RoleService.deleteRole(req.params.id);
 
@@ -108,10 +96,7 @@ class RoleController {
                 message: result.message,
             });
         } catch (error) {
-            res.status(400).json({
-                success: false,
-                message: error.message,
-            });
+            next(error);
         }
     }
 
@@ -119,7 +104,7 @@ class RoleController {
      * POST /api/roles/assign
      * Asignar rol a un usuario
      */
-    async assignToUser(req, res) {
+    async assignToUser(req, res, next) {
         try {
             const { userId, roleId } = req.body;
 
@@ -131,10 +116,7 @@ class RoleController {
                 data: result,
             });
         } catch (error) {
-            res.status(400).json({
-                success: false,
-                message: error.message,
-            });
+            next(error);
         }
     }
 
@@ -142,7 +124,7 @@ class RoleController {
      * POST /api/roles/remove
      * Remover rol de un usuario
      */
-    async removeFromUser(req, res) {
+    async removeFromUser(req, res, next) {
         try {
             const { userId, roleId } = req.body;
 
@@ -154,10 +136,7 @@ class RoleController {
                 data: result,
             });
         } catch (error) {
-            res.status(400).json({
-                success: false,
-                message: error.message,
-            });
+            next(error);
         }
     }
 
@@ -165,7 +144,7 @@ class RoleController {
      * GET /api/roles/user/:userId
      * Obtener roles de un usuario
      */
-    async getUserRoles(req, res) {
+    async getUserRoles(req, res, next) {
         try {
             const roles = await RoleService.getUserRoles(req.params.userId);
 
@@ -174,10 +153,7 @@ class RoleController {
                 data: roles,
             });
         } catch (error) {
-            res.status(404).json({
-                success: false,
-                message: error.message,
-            });
+            next(error);
         }
     }
 
@@ -185,7 +161,7 @@ class RoleController {
      * GET /api/roles/:roleId/users
      * Obtener usuarios con un rol específico
      */
-    async getRoleUsers(req, res) {
+    async getRoleUsers(req, res, next) {
         try {
             const users = await RoleService.getRoleUsers(req.params.roleId);
 
@@ -194,10 +170,7 @@ class RoleController {
                 data: users,
             });
         } catch (error) {
-            res.status(404).json({
-                success: false,
-                message: error.message,
-            });
+            next(error);
         }
     }
 }
