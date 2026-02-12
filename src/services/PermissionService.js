@@ -1,4 +1,5 @@
 const { Permission, Role } = require('../models');
+const { NotFoundError, ConflictError, BadRequestError } = require('../errors/AppError');
 
 class PermissionService {
     /**
@@ -23,7 +24,7 @@ class PermissionService {
         });
 
         if (!permission) {
-            throw new Error('Permiso no encontrado');
+            throw new NotFoundError('Permiso no encontrado');
         }
 
         return permission;
@@ -33,18 +34,16 @@ class PermissionService {
      * Crear un nuevo permiso
      */
     async createPermission({ name, description, resource, action }) {
-        // Verificar que no exista un permiso con el mismo nombre
         const existingByName = await Permission.findOne({ where: { name } });
         if (existingByName) {
-            throw new Error('Ya existe un permiso con ese nombre');
+            throw new ConflictError('Ya existe un permiso con ese nombre');
         }
 
-        // Verificar que no exista un permiso con la misma combinación resource/action
         const existingByResourceAction = await Permission.findOne({
             where: { resource, action },
         });
         if (existingByResourceAction) {
-            throw new Error(`Ya existe un permiso para ${action} sobre ${resource}`);
+            throw new ConflictError(`Ya existe un permiso para ${action} sobre ${resource}`);
         }
 
         return await Permission.create({
@@ -61,15 +60,13 @@ class PermissionService {
     async updatePermission(id, { name, description, resource, action }) {
         const permission = await this.getPermissionById(id);
 
-        // Verificar nombre único si se está cambiando
         if (name && name !== permission.name) {
             const existingByName = await Permission.findOne({ where: { name } });
             if (existingByName) {
-                throw new Error('Ya existe un permiso con ese nombre');
+                throw new ConflictError('Ya existe un permiso con ese nombre');
             }
         }
 
-        // Verificar combinación resource/action si se está cambiando
         const newResource = resource ?? permission.resource;
         const newAction = action ?? permission.action;
 
@@ -78,7 +75,7 @@ class PermissionService {
                 where: { resource: newResource, action: newAction },
             });
             if (existingByResourceAction && existingByResourceAction.id !== id) {
-                throw new Error(`Ya existe un permiso para ${newAction} sobre ${newResource}`);
+                throw new ConflictError(`Ya existe un permiso para ${newAction} sobre ${newResource}`);
             }
         }
 
@@ -107,18 +104,17 @@ class PermissionService {
     async assignPermissionToRole(roleId, permissionId) {
         const role = await Role.findByPk(roleId);
         if (!role) {
-            throw new Error('Rol no encontrado');
+            throw new NotFoundError('Rol no encontrado');
         }
 
         const permission = await Permission.findByPk(permissionId);
         if (!permission) {
-            throw new Error('Permiso no encontrado');
+            throw new NotFoundError('Permiso no encontrado');
         }
 
-        // Verificar si ya tiene el permiso asignado
         const hasPermission = await role.hasPermission(permission);
         if (hasPermission) {
-            throw new Error('El rol ya tiene este permiso asignado');
+            throw new ConflictError('El rol ya tiene este permiso asignado');
         }
 
         await role.addPermission(permission);
@@ -144,18 +140,17 @@ class PermissionService {
     async removePermissionFromRole(roleId, permissionId) {
         const role = await Role.findByPk(roleId);
         if (!role) {
-            throw new Error('Rol no encontrado');
+            throw new NotFoundError('Rol no encontrado');
         }
 
         const permission = await Permission.findByPk(permissionId);
         if (!permission) {
-            throw new Error('Permiso no encontrado');
+            throw new NotFoundError('Permiso no encontrado');
         }
 
-        // Verificar si tiene el permiso asignado
         const hasPermission = await role.hasPermission(permission);
         if (!hasPermission) {
-            throw new Error('El rol no tiene este permiso asignado');
+            throw new ConflictError('El rol no tiene este permiso asignado');
         }
 
         await role.removePermission(permission);
@@ -186,7 +181,7 @@ class PermissionService {
         });
 
         if (!role) {
-            throw new Error('Rol no encontrado');
+            throw new NotFoundError('Rol no encontrado');
         }
 
         return role.permissions;
@@ -198,7 +193,7 @@ class PermissionService {
     async assignMultiplePermissionsToRole(roleId, permissionIds) {
         const role = await Role.findByPk(roleId);
         if (!role) {
-            throw new Error('Rol no encontrado');
+            throw new NotFoundError('Rol no encontrado');
         }
 
         const permissions = await Permission.findAll({
@@ -206,7 +201,7 @@ class PermissionService {
         });
 
         if (permissions.length !== permissionIds.length) {
-            throw new Error('Algunos permisos no fueron encontrados');
+            throw new BadRequestError('Algunos permisos no fueron encontrados');
         }
 
         await role.setPermissions(permissions);

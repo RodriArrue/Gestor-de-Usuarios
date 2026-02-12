@@ -8,8 +8,9 @@ const userRoutes = require('./routes/users');
 const roleRoutes = require('./routes/roles');
 const permissionRoutes = require('./routes/permissions');
 
-// Importar middleware de auditoría
+// Importar middlewares
 const { auditMiddleware } = require('./middlewares/audit');
+const { errorHandler } = require('./middlewares/errorHandler');
 
 const app = express();
 
@@ -40,5 +41,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/roles', roleRoutes);
 app.use('/api/permissions', permissionRoutes);
 
-module.exports = app;
+// Middleware de manejo de errores (DESPUÉS de todas las rutas)
+app.use(errorHandler);
 
+module.exports = app;

@@ -5,7 +5,7 @@ class PermissionController {
      * GET /api/permissions
      * Obtener todos los permisos
      */
-    async getAll(req, res) {
+    async getAll(req, res, next) {
         try {
             const permissions = await PermissionService.getAllPermissions();
 
@@ -14,10 +14,7 @@ class PermissionController {
                 data: permissions,
             });
         } catch (error) {
-            res.status(500).json({
-                success: false,
-                message: error.message,
-            });
+            next(error);
         }
     }
 
@@ -25,7 +22,7 @@ class PermissionController {
      * GET /api/permissions/:id
      * Obtener permiso por ID
      */
-    async getById(req, res) {
+    async getById(req, res, next) {
         try {
             const permission = await PermissionService.getPermissionById(req.params.id);
 
@@ -34,10 +31,7 @@ class PermissionController {
                 data: permission,
             });
         } catch (error) {
-            res.status(404).json({
-                success: false,
-                message: error.message,
-            });
+            next(error);
         }
     }
 
@@ -45,7 +39,7 @@ class PermissionController {
      * POST /api/permissions
      * Crear un nuevo permiso
      */
-    async create(req, res) {
+    async create(req, res, next) {
         try {
             const { name, description, resource, action } = req.body;
 
@@ -62,10 +56,7 @@ class PermissionController {
                 data: permission,
             });
         } catch (error) {
-            res.status(400).json({
-                success: false,
-                message: error.message,
-            });
+            next(error);
         }
     }
 
@@ -73,7 +64,7 @@ class PermissionController {
      * PUT /api/permissions/:id
      * Actualizar un permiso
      */
-    async update(req, res) {
+    async update(req, res, next) {
         try {
             const { name, description, resource, action } = req.body;
 
@@ -90,10 +81,7 @@ class PermissionController {
                 data: permission,
             });
         } catch (error) {
-            res.status(400).json({
-                success: false,
-                message: error.message,
-            });
+            next(error);
         }
     }
 
@@ -101,7 +89,7 @@ class PermissionController {
      * DELETE /api/permissions/:id
      * Eliminar un permiso
      */
-    async delete(req, res) {
+    async delete(req, res, next) {
         try {
             const result = await PermissionService.deletePermission(req.params.id);
 
@@ -110,10 +98,7 @@ class PermissionController {
                 message: result.message,
             });
         } catch (error) {
-            res.status(400).json({
-                success: false,
-                message: error.message,
-            });
+            next(error);
         }
     }
 
@@ -121,7 +106,7 @@ class PermissionController {
      * POST /api/permissions/assign
      * Asignar permiso a un rol
      */
-    async assignToRole(req, res) {
+    async assignToRole(req, res, next) {
         try {
             const { roleId, permissionId } = req.body;
 
@@ -133,10 +118,7 @@ class PermissionController {
                 data: result,
             });
         } catch (error) {
-            res.status(400).json({
-                success: false,
-                message: error.message,
-            });
+            next(error);
         }
     }
 
@@ -144,7 +126,7 @@ class PermissionController {
      * POST /api/permissions/remove
      * Remover permiso de un rol
      */
-    async removeFromRole(req, res) {
+    async removeFromRole(req, res, next) {
         try {
             const { roleId, permissionId } = req.body;
 
@@ -156,10 +138,7 @@ class PermissionController {
                 data: result,
             });
         } catch (error) {
-            res.status(400).json({
-                success: false,
-                message: error.message,
-            });
+            next(error);
         }
     }
 
@@ -167,7 +146,7 @@ class PermissionController {
      * GET /api/permissions/role/:roleId
      * Obtener permisos de un rol
      */
-    async getRolePermissions(req, res) {
+    async getRolePermissions(req, res, next) {
         try {
             const permissions = await PermissionService.getRolePermissions(req.params.roleId);
 
@@ -176,10 +155,7 @@ class PermissionController {
                 data: permissions,
             });
         } catch (error) {
-            res.status(404).json({
-                success: false,
-                message: error.message,
-            });
+            next(error);
         }
     }
 
@@ -187,7 +163,7 @@ class PermissionController {
      * POST /api/permissions/role/:roleId/bulk
      * Asignar múltiples permisos a un rol
      */
-    async assignBulkToRole(req, res) {
+    async assignBulkToRole(req, res, next) {
         try {
             const { roleId } = req.params;
             const { permissionIds } = req.body;
@@ -203,10 +179,7 @@ class PermissionController {
                 data: result,
             });
         } catch (error) {
-            res.status(400).json({
-                success: false,
-                message: error.message,
-            });
+            next(error);
         }
     }
 }

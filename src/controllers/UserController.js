@@ -5,7 +5,7 @@ class UserController {
      * Crear un nuevo usuario
      * POST /api/users
      */
-    async create(req, res) {
+    async create(req, res, next) {
         try {
             const { username, email, password, firstName, lastName, roleIds } = req.body;
 
@@ -24,10 +24,7 @@ class UserController {
                 data: user,
             });
         } catch (error) {
-            res.status(400).json({
-                success: false,
-                message: error.message,
-            });
+            next(error);
         }
     }
 
@@ -35,7 +32,7 @@ class UserController {
      * Obtener todos los usuarios
      * GET /api/users
      */
-    async getAll(req, res) {
+    async getAll(req, res, next) {
         try {
             const { page, limit, includeInactive, search } = req.query;
 
@@ -52,10 +49,7 @@ class UserController {
                 pagination: result.pagination,
             });
         } catch (error) {
-            res.status(500).json({
-                success: false,
-                message: error.message,
-            });
+            next(error);
         }
     }
 
@@ -63,10 +57,9 @@ class UserController {
      * Obtener usuario por ID
      * GET /api/users/:id
      */
-    async getById(req, res) {
+    async getById(req, res, next) {
         try {
             const { id } = req.params;
-
             const user = await UserService.getUserById(id);
 
             res.json({
@@ -74,11 +67,7 @@ class UserController {
                 data: user,
             });
         } catch (error) {
-            const statusCode = error.message === 'Usuario no encontrado' ? 404 : 500;
-            res.status(statusCode).json({
-                success: false,
-                message: error.message,
-            });
+            next(error);
         }
     }
 
@@ -86,7 +75,7 @@ class UserController {
      * Desactivar usuario (soft delete)
      * PATCH /api/users/:id/deactivate
      */
-    async deactivate(req, res) {
+    async deactivate(req, res, next) {
         try {
             const { id } = req.params;
             const currentUserId = req.user.id;
@@ -104,11 +93,7 @@ class UserController {
                 },
             });
         } catch (error) {
-            const statusCode = error.message === 'Usuario no encontrado' ? 404 : 400;
-            res.status(statusCode).json({
-                success: false,
-                message: error.message,
-            });
+            next(error);
         }
     }
 
@@ -116,7 +101,7 @@ class UserController {
      * Reactivar usuario
      * PATCH /api/users/:id/reactivate
      */
-    async reactivate(req, res) {
+    async reactivate(req, res, next) {
         try {
             const { id } = req.params;
 
@@ -133,11 +118,7 @@ class UserController {
                 },
             });
         } catch (error) {
-            const statusCode = error.message === 'Usuario no encontrado' ? 404 : 400;
-            res.status(statusCode).json({
-                success: false,
-                message: error.message,
-            });
+            next(error);
         }
     }
 }
