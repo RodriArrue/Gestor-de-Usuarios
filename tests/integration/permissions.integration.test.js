@@ -39,9 +39,14 @@ const { User, Role, Permission } = require('../../src/models');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
+const ADMIN_UUID = 'a0000000-0000-4000-a000-000000000001';
+const ROLE_UUID = 'a0000000-0000-4000-8000-000000000003';
+const PERM_UUID = 'a0000000-0000-4000-9000-000000000004';
+const PERM_UUID_2 = 'a0000000-0000-4000-9000-000000000005';
+
 const generateTestToken = (payload = {}) => {
     return jwt.sign({
-        id: 'admin-uuid',
+        id: ADMIN_UUID,
         email: 'admin@test.com',
         username: 'admin',
         ...payload,
@@ -50,7 +55,7 @@ const generateTestToken = (payload = {}) => {
 
 const mockAuthenticatedUser = (permissions = []) => {
     User.findByPk.mockResolvedValue({
-        id: 'admin-uuid',
+        id: ADMIN_UUID,
         username: 'admin',
         email: 'admin@test.com',
         roles: [{
@@ -74,8 +79,8 @@ describe('Permissions API Integration Tests', () => {
             mockAuthenticatedUser([{ resource: 'permissions', action: 'read' }]);
 
             Permission.findAll.mockResolvedValue([
-                { id: 'p1', name: 'users.create', resource: 'users', action: 'create' },
-                { id: 'p2', name: 'users.read', resource: 'users', action: 'read' },
+                { id: PERM_UUID, name: 'users.create', resource: 'users', action: 'create' },
+                { id: PERM_UUID_2, name: 'users.read', resource: 'users', action: 'read' },
             ]);
 
             const res = await request(app)
@@ -113,7 +118,7 @@ describe('Permissions API Integration Tests', () => {
             mockAuthenticatedUser([{ resource: 'permissions', action: 'read' }]);
 
             Permission.findByPk.mockResolvedValue({
-                id: 'p1',
+                id: PERM_UUID,
                 name: 'users.create',
                 resource: 'users',
                 action: 'create',
@@ -121,10 +126,22 @@ describe('Permissions API Integration Tests', () => {
             });
 
             const res = await request(app)
-                .get('/api/permissions/p1')
+                .get(`/api/permissions/${PERM_UUID}`)
                 .set('Authorization', `Bearer ${token}`);
 
             expect(res.status).toBe(200);
+        });
+
+        it('debe retornar 400 con ID no UUID', async () => {
+            const token = generateTestToken();
+            mockAuthenticatedUser([{ resource: 'permissions', action: 'read' }]);
+
+            const res = await request(app)
+                .get('/api/permissions/no-es-uuid')
+                .set('Authorization', `Bearer ${token}`);
+
+            expect(res.status).toBe(400);
+            expect(res.body.message).toBe('Error de validación');
         });
     });
 
@@ -136,10 +153,10 @@ describe('Permissions API Integration Tests', () => {
             const token = generateTestToken();
             mockAuthenticatedUser([{ resource: 'permissions', action: 'create' }]);
 
-            Permission.findOne.mockResolvedValueOnce(null); // nombre
-            Permission.findOne.mockResolvedValueOnce(null); // resource+action
+            Permission.findOne.mockResolvedValueOnce(null);
+            Permission.findOne.mockResolvedValueOnce(null);
             Permission.create.mockResolvedValue({
-                id: 'p-new',
+                id: PERM_UUID,
                 name: 'posts.create',
                 resource: 'posts',
                 action: 'create',
@@ -169,6 +186,7 @@ describe('Permissions API Integration Tests', () => {
                 .send({ name: 'test' });
 
             expect(res.status).toBe(400);
+            expect(res.body.message).toBe('Error de validación');
         });
 
         it('debe retornar 400 si la action es inválida', async () => {
@@ -185,7 +203,11 @@ describe('Permissions API Integration Tests', () => {
                 });
 
             expect(res.status).toBe(400);
-            expect(res.body.message).toContain('action debe ser uno de');
+            expect(res.body.errors).toEqual(
+                expect.arrayContaining([
+                    expect.objectContaining({ field: 'action' }),
+                ])
+            );
         });
     });
 
@@ -198,7 +220,7 @@ describe('Permissions API Integration Tests', () => {
             mockAuthenticatedUser([{ resource: 'permissions', action: 'update' }]);
 
             const mockPermission = {
-                id: 'p1',
+                id: PERM_UUID,
                 name: 'users.create',
                 resource: 'users',
                 action: 'create',
@@ -210,7 +232,7 @@ describe('Permissions API Integration Tests', () => {
             Permission.findOne.mockResolvedValue(null);
 
             const res = await request(app)
-                .put('/api/permissions/p1')
+                .put(`/api/permissions/${PERM_UUID}`)
                 .set('Authorization', `Bearer ${token}`)
                 .send({ description: 'Updated' });
 
@@ -227,7 +249,7 @@ describe('Permissions API Integration Tests', () => {
             mockAuthenticatedUser([{ resource: 'permissions', action: 'delete' }]);
 
             const mockPermission = {
-                id: 'p1',
+                id: PERM_UUID,
                 name: 'temp',
                 roles: [],
                 destroy: jest.fn().mockResolvedValue(true),
@@ -235,7 +257,7 @@ describe('Permissions API Integration Tests', () => {
             Permission.findByPk.mockResolvedValue(mockPermission);
 
             const res = await request(app)
-                .delete('/api/permissions/p1')
+                .delete(`/api/permissions/${PERM_UUID}`)
                 .set('Authorization', `Bearer ${token}`);
 
             expect(res.status).toBe(200);
@@ -251,14 +273,14 @@ describe('Permissions API Integration Tests', () => {
             mockAuthenticatedUser([{ resource: 'roles', action: 'manage' }]);
 
             const mockRole = {
-                id: 'r1',
+                id: ROLE_UUID,
                 name: 'editor',
                 hasPermission: jest.fn().mockResolvedValue(false),
                 addPermission: jest.fn().mockResolvedValue(true),
             };
             Role.findByPk.mockResolvedValue(mockRole);
             Permission.findByPk.mockResolvedValue({
-                id: 'p1',
+                id: PERM_UUID,
                 name: 'users.create',
                 resource: 'users',
                 action: 'create',
@@ -267,7 +289,7 @@ describe('Permissions API Integration Tests', () => {
             const res = await request(app)
                 .post('/api/permissions/assign')
                 .set('Authorization', `Bearer ${token}`)
-                .send({ roleId: 'r1', permissionId: 'p1' });
+                .send({ roleId: ROLE_UUID, permissionId: PERM_UUID });
 
             expect(res.status).toBe(200);
             expect(res.body.success).toBe(true);
@@ -280,9 +302,27 @@ describe('Permissions API Integration Tests', () => {
             const res = await request(app)
                 .post('/api/permissions/assign')
                 .set('Authorization', `Bearer ${token}`)
-                .send({ roleId: 'r1' });
+                .send({ roleId: ROLE_UUID });
 
             expect(res.status).toBe(400);
+            expect(res.body.message).toBe('Error de validación');
+        });
+
+        it('debe retornar 400 si roleId no es UUID', async () => {
+            const token = generateTestToken();
+            mockAuthenticatedUser([{ resource: 'roles', action: 'manage' }]);
+
+            const res = await request(app)
+                .post('/api/permissions/assign')
+                .set('Authorization', `Bearer ${token}`)
+                .send({ roleId: 'no-uuid', permissionId: PERM_UUID });
+
+            expect(res.status).toBe(400);
+            expect(res.body.errors).toEqual(
+                expect.arrayContaining([
+                    expect.objectContaining({ field: 'roleId' }),
+                ])
+            );
         });
     });
 
@@ -295,18 +335,18 @@ describe('Permissions API Integration Tests', () => {
             mockAuthenticatedUser([{ resource: 'roles', action: 'manage' }]);
 
             const mockRole = {
-                id: 'r1',
+                id: ROLE_UUID,
                 name: 'editor',
                 hasPermission: jest.fn().mockResolvedValue(true),
                 removePermission: jest.fn().mockResolvedValue(true),
             };
             Role.findByPk.mockResolvedValue(mockRole);
-            Permission.findByPk.mockResolvedValue({ id: 'p1', name: 'users.create' });
+            Permission.findByPk.mockResolvedValue({ id: PERM_UUID, name: 'users.create' });
 
             const res = await request(app)
                 .post('/api/permissions/remove')
                 .set('Authorization', `Bearer ${token}`)
-                .send({ roleId: 'r1', permissionId: 'p1' });
+                .send({ roleId: ROLE_UUID, permissionId: PERM_UUID });
 
             expect(res.status).toBe(200);
         });
@@ -321,20 +361,20 @@ describe('Permissions API Integration Tests', () => {
             mockAuthenticatedUser([{ resource: 'roles', action: 'manage' }]);
 
             const mockRole = {
-                id: 'r1',
+                id: ROLE_UUID,
                 name: 'editor',
                 setPermissions: jest.fn().mockResolvedValue(true),
             };
             Role.findByPk.mockResolvedValue(mockRole);
             Permission.findAll.mockResolvedValue([
-                { id: 'p1', name: 'users.create', resource: 'users', action: 'create' },
-                { id: 'p2', name: 'users.read', resource: 'users', action: 'read' },
+                { id: PERM_UUID, name: 'users.create', resource: 'users', action: 'create' },
+                { id: PERM_UUID_2, name: 'users.read', resource: 'users', action: 'read' },
             ]);
 
             const res = await request(app)
-                .post('/api/permissions/role/r1/bulk')
+                .post(`/api/permissions/role/${ROLE_UUID}/bulk`)
                 .set('Authorization', `Bearer ${token}`)
-                .send({ permissionIds: ['p1', 'p2'] });
+                .send({ permissionIds: [PERM_UUID, PERM_UUID_2] });
 
             expect(res.status).toBe(200);
             expect(res.body.success).toBe(true);
@@ -345,11 +385,25 @@ describe('Permissions API Integration Tests', () => {
             mockAuthenticatedUser([{ resource: 'roles', action: 'manage' }]);
 
             const res = await request(app)
-                .post('/api/permissions/role/r1/bulk')
+                .post(`/api/permissions/role/${ROLE_UUID}/bulk`)
                 .set('Authorization', `Bearer ${token}`)
                 .send({ permissionIds: 'not-array' });
 
             expect(res.status).toBe(400);
+            expect(res.body.message).toBe('Error de validación');
+        });
+
+        it('debe retornar 400 si permissionIds tiene UUIDs inválidos', async () => {
+            const token = generateTestToken();
+            mockAuthenticatedUser([{ resource: 'roles', action: 'manage' }]);
+
+            const res = await request(app)
+                .post(`/api/permissions/role/${ROLE_UUID}/bulk`)
+                .set('Authorization', `Bearer ${token}`)
+                .send({ permissionIds: ['no-uuid', 'tampoco-uuid'] });
+
+            expect(res.status).toBe(400);
+            expect(res.body.errors).toBeDefined();
         });
     });
 });

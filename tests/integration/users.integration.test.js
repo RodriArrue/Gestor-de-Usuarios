@@ -37,19 +37,23 @@ const { User, Role } = require('../../src/models');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
+// UUIDs de prueba válidos
+const ADMIN_UUID = 'a0000000-0000-4000-a000-000000000001';
+const TARGET_UUID = 'b0000000-0000-4000-b000-000000000002';
+const ROLE_UUID = 'a0000000-0000-4000-8000-000000000003';
+
 const generateTestToken = (payload = {}) => {
     return jwt.sign({
-        id: 'admin-uuid',
+        id: ADMIN_UUID,
         email: 'admin@test.com',
         username: 'admin',
         ...payload,
     }, JWT_SECRET, { expiresIn: '1h' });
 };
 
-// Helper: mock de usuario con permisos para que pase requirePermission
 const mockAuthenticatedUser = (permissions = []) => {
     User.findByPk.mockResolvedValue({
-        id: 'admin-uuid',
+        id: ADMIN_UUID,
         username: 'admin',
         email: 'admin@test.com',
         roles: [{
@@ -93,7 +97,7 @@ describe('Users API Integration Tests', () => {
 
         it('debe retornar 403 sin permiso de lectura', async () => {
             const token = generateTestToken();
-            mockAuthenticatedUser([]); // sin permisos
+            mockAuthenticatedUser([]);
 
             const res = await request(app)
                 .get('/api/users')
@@ -109,20 +113,19 @@ describe('Users API Integration Tests', () => {
     describe('GET /api/users/:id', () => {
         it('debe retornar un usuario por ID (200)', async () => {
             const token = generateTestToken();
-            // Primera llamada: requirePermission, segunda: getUserById
             User.findByPk
                 .mockResolvedValueOnce({
-                    id: 'admin-uuid',
+                    id: ADMIN_UUID,
                     roles: [{ name: 'admin', permissions: [{ resource: 'users', action: 'read' }] }],
                 })
                 .mockResolvedValueOnce({
-                    id: 'target-uuid',
+                    id: TARGET_UUID,
                     username: 'target',
                     roles: [],
                 });
 
             const res = await request(app)
-                .get('/api/users/target-uuid')
+                .get(`/api/users/${TARGET_UUID}`)
                 .set('Authorization', `Bearer ${token}`);
 
             expect(res.status).toBe(200);
@@ -133,16 +136,28 @@ describe('Users API Integration Tests', () => {
             const token = generateTestToken();
             User.findByPk
                 .mockResolvedValueOnce({
-                    id: 'admin-uuid',
+                    id: ADMIN_UUID,
                     roles: [{ name: 'admin', permissions: [{ resource: 'users', action: 'read' }] }],
                 })
                 .mockResolvedValueOnce(null);
 
             const res = await request(app)
-                .get('/api/users/no-existe')
+                .get(`/api/users/${TARGET_UUID}`)
                 .set('Authorization', `Bearer ${token}`);
 
             expect(res.status).toBe(404);
+        });
+
+        it('debe retornar 400 con ID no UUID', async () => {
+            const token = generateTestToken();
+            mockAuthenticatedUser([{ resource: 'users', action: 'read' }]);
+
+            const res = await request(app)
+                .get('/api/users/no-es-uuid')
+                .set('Authorization', `Bearer ${token}`);
+
+            expect(res.status).toBe(400);
+            expect(res.body.message).toBe('Error de validación');
         });
     });
 
@@ -154,11 +169,11 @@ describe('Users API Integration Tests', () => {
             const token = generateTestToken();
             mockAuthenticatedUser([{ resource: 'users', action: 'create' }]);
 
-            User.findOne.mockResolvedValueOnce(null); // email
-            User.findOne.mockResolvedValueOnce(null); // username
+            User.findOne.mockResolvedValueOnce(null);
+            User.findOne.mockResolvedValueOnce(null);
 
             const mockUser = {
-                id: 'new-uuid',
+                id: TARGET_UUID,
                 username: 'newuser',
                 email: 'new@test.com',
                 password: 'hashed',
@@ -175,7 +190,7 @@ describe('Users API Integration Tests', () => {
                 },
             };
             User.create.mockResolvedValue(mockUser);
-            Role.findOne.mockResolvedValue({ id: 'role-user', name: 'user' });
+            Role.findOne.mockResolvedValue({ id: ROLE_UUID, name: 'user' });
 
             const res = await request(app)
                 .post('/api/users')
@@ -200,11 +215,13 @@ describe('Users API Integration Tests', () => {
                 .send({ username: 'test' });
 
             expect(res.status).toBe(400);
+            expect(res.body.message).toBe('Error de validación');
+            expect(res.body.errors).toBeDefined();
         });
 
         it('debe retornar 403 sin permiso de creación', async () => {
             const token = generateTestToken();
-            mockAuthenticatedUser([{ resource: 'users', action: 'read' }]); // solo read
+            mockAuthenticatedUser([{ resource: 'users', action: 'read' }]);
 
             const res = await request(app)
                 .post('/api/users')
@@ -228,7 +245,7 @@ describe('Users API Integration Tests', () => {
             mockAuthenticatedUser([{ resource: 'users', action: 'delete' }]);
 
             const mockUser = {
-                id: 'target-uuid',
+                id: TARGET_UUID,
                 username: 'target',
                 email: 'target@test.com',
                 isActive: true,
@@ -237,16 +254,15 @@ describe('Users API Integration Tests', () => {
                     return Promise.resolve(this);
                 }),
             };
-            // Después de requirePermission, el findByPk del servicio
             User.findByPk
                 .mockResolvedValueOnce({
-                    id: 'admin-uuid',
+                    id: ADMIN_UUID,
                     roles: [{ name: 'admin', permissions: [{ resource: 'users', action: 'delete' }] }],
                 })
                 .mockResolvedValueOnce(mockUser);
 
             const res = await request(app)
-                .patch('/api/users/target-uuid/deactivate')
+                .patch(`/api/users/${TARGET_UUID}/deactivate`)
                 .set('Authorization', `Bearer ${token}`);
 
             expect(res.status).toBe(200);
@@ -263,7 +279,7 @@ describe('Users API Integration Tests', () => {
             mockAuthenticatedUser([{ resource: 'users', action: 'update' }]);
 
             const mockUser = {
-                id: 'target-uuid',
+                id: TARGET_UUID,
                 username: 'target',
                 email: 'target@test.com',
                 isActive: false,
@@ -274,13 +290,13 @@ describe('Users API Integration Tests', () => {
             };
             User.findByPk
                 .mockResolvedValueOnce({
-                    id: 'admin-uuid',
+                    id: ADMIN_UUID,
                     roles: [{ name: 'admin', permissions: [{ resource: 'users', action: 'update' }] }],
                 })
                 .mockResolvedValueOnce(mockUser);
 
             const res = await request(app)
-                .patch('/api/users/target-uuid/reactivate')
+                .patch(`/api/users/${TARGET_UUID}/reactivate`)
                 .set('Authorization', `Bearer ${token}`);
 
             expect(res.status).toBe(200);

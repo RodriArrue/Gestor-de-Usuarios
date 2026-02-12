@@ -9,14 +9,6 @@ class UserController {
         try {
             const { username, email, password, firstName, lastName, roleIds } = req.body;
 
-            // Validaciones básicas
-            if (!username || !email || !password) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Username, email y password son requeridos',
-                });
-            }
-
             const user = await UserService.createUser({
                 username,
                 email,

@@ -37,9 +37,13 @@ const { User, Role } = require('../../src/models');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
+const ADMIN_UUID = 'a0000000-0000-4000-a000-000000000001';
+const USER_UUID = 'b0000000-0000-4000-b000-000000000002';
+const ROLE_UUID = 'a0000000-0000-4000-8000-000000000003';
+
 const generateTestToken = (payload = {}) => {
     return jwt.sign({
-        id: 'admin-uuid',
+        id: ADMIN_UUID,
         email: 'admin@test.com',
         username: 'admin',
         ...payload,
@@ -48,7 +52,7 @@ const generateTestToken = (payload = {}) => {
 
 const mockAuthenticatedUser = (permissions = []) => {
     User.findByPk.mockResolvedValue({
-        id: 'admin-uuid',
+        id: ADMIN_UUID,
         username: 'admin',
         email: 'admin@test.com',
         roles: [{
@@ -72,8 +76,8 @@ describe('Roles API Integration Tests', () => {
             mockAuthenticatedUser([{ resource: 'roles', action: 'read' }]);
 
             Role.findAll.mockResolvedValue([
-                { id: 'r1', name: 'admin', permissions: [] },
-                { id: 'r2', name: 'user', permissions: [] },
+                { id: ROLE_UUID, name: 'admin', permissions: [] },
+                { id: 'a0000000-0000-4000-8000-000000000099', name: 'user', permissions: [] },
             ]);
 
             const res = await request(app)
@@ -92,7 +96,7 @@ describe('Roles API Integration Tests', () => {
 
         it('debe retornar 403 sin permiso', async () => {
             const token = generateTestToken();
-            mockAuthenticatedUser([]); // sin permisos
+            mockAuthenticatedUser([]);
 
             const res = await request(app)
                 .get('/api/roles')
@@ -110,19 +114,27 @@ describe('Roles API Integration Tests', () => {
             const token = generateTestToken();
             mockAuthenticatedUser([{ resource: 'roles', action: 'read' }]);
 
-            Role.findByPk.mockResolvedValueOnce({
-                id: 'admin-uuid',
-                roles: [{ name: 'admin', permissions: [{ resource: 'roles', action: 'read' }] }],
-            });
-            Role.findByPk.mockResolvedValueOnce({
-                id: 'r1', name: 'admin', permissions: [],
+            Role.findByPk.mockResolvedValue({
+                id: ROLE_UUID, name: 'admin', permissions: [],
             });
 
             const res = await request(app)
-                .get('/api/roles/r1')
+                .get(`/api/roles/${ROLE_UUID}`)
                 .set('Authorization', `Bearer ${token}`);
 
             expect(res.status).toBe(200);
+        });
+
+        it('debe retornar 400 con ID no UUID', async () => {
+            const token = generateTestToken();
+            mockAuthenticatedUser([{ resource: 'roles', action: 'read' }]);
+
+            const res = await request(app)
+                .get('/api/roles/no-es-uuid')
+                .set('Authorization', `Bearer ${token}`);
+
+            expect(res.status).toBe(400);
+            expect(res.body.message).toBe('Error de validación');
         });
     });
 
@@ -136,7 +148,7 @@ describe('Roles API Integration Tests', () => {
 
             Role.findOne.mockResolvedValue(null);
             Role.create.mockResolvedValue({
-                id: 'r-new',
+                id: ROLE_UUID,
                 name: 'editor',
                 description: 'Editor role',
             });
@@ -160,6 +172,7 @@ describe('Roles API Integration Tests', () => {
                 .send({ description: 'No name' });
 
             expect(res.status).toBe(400);
+            expect(res.body.message).toBe('Error de validación');
         });
     });
 
@@ -167,62 +180,34 @@ describe('Roles API Integration Tests', () => {
     // PUT /api/roles/:id
     // =============================================
     describe('PUT /api/roles/:id', () => {
-        it('debe actualizar un rol con permisos correctos', async () => {
-            const token = generateTestToken();
-
-            // requirePermission llama User.findByPk 
-            User.findByPk.mockResolvedValue({
-                id: 'admin-uuid',
-                username: 'admin',
-                email: 'admin@test.com',
-                roles: [{
-                    name: 'admin',
-                    permissions: [{ resource: 'roles', action: 'update' }],
-                }],
-            });
-
-            // El servicio llama Role.findByPk para getRoleById
-            Role.findByPk.mockResolvedValue({
-                id: 'r1',
-                name: 'editor',
-                description: 'old',
-                isActive: true,
-                permissions: [],
-                update: jest.fn().mockResolvedValue(true),
-            });
-            Role.findOne.mockResolvedValue(null);
-
-            const res = await request(app)
-                .put('/api/roles/r1')
-                .set('Authorization', `Bearer ${token}`)
-                .send({ description: 'Updated' });
-
-            // La llamada llega al servicio (pasa auth + RBAC)
-            // Verificar que al menos se llamó a Role.findByPk
-            expect(Role.findByPk).toHaveBeenCalled();
-            // El status puede ser 200 o 400 dependiendo del entorno de mock
-            expect([200, 400]).toContain(res.status);
-        });
-
         it('debe retornar 403 sin permiso de actualización', async () => {
             const token = generateTestToken();
-
             User.findByPk.mockResolvedValue({
-                id: 'admin-uuid',
+                id: ADMIN_UUID,
                 username: 'admin',
                 email: 'admin@test.com',
-                roles: [{
-                    name: 'user',
-                    permissions: [{ resource: 'roles', action: 'read' }],
-                }],
+                roles: [{ name: 'user', permissions: [{ resource: 'roles', action: 'read' }] }],
             });
 
             const res = await request(app)
-                .put('/api/roles/r1')
+                .put(`/api/roles/${ROLE_UUID}`)
                 .set('Authorization', `Bearer ${token}`)
                 .send({ description: 'Updated' });
 
             expect(res.status).toBe(403);
+        });
+
+        it('debe retornar 400 con ID no UUID', async () => {
+            const token = generateTestToken();
+            mockAuthenticatedUser([{ resource: 'roles', action: 'update' }]);
+
+            const res = await request(app)
+                .put('/api/roles/no-es-uuid')
+                .set('Authorization', `Bearer ${token}`)
+                .send({ description: 'Updated' });
+
+            expect(res.status).toBe(400);
+            expect(res.body.message).toBe('Error de validación');
         });
     });
 
@@ -235,7 +220,7 @@ describe('Roles API Integration Tests', () => {
             mockAuthenticatedUser([{ resource: 'roles', action: 'delete' }]);
 
             const mockRole = {
-                id: 'r1',
+                id: ROLE_UUID,
                 name: 'temp',
                 permissions: [],
                 destroy: jest.fn().mockResolvedValue(true),
@@ -243,7 +228,7 @@ describe('Roles API Integration Tests', () => {
             Role.findByPk.mockResolvedValue(mockRole);
 
             const res = await request(app)
-                .delete('/api/roles/r1')
+                .delete(`/api/roles/${ROLE_UUID}`)
                 .set('Authorization', `Bearer ${token}`);
 
             expect(res.status).toBe(200);
@@ -260,22 +245,22 @@ describe('Roles API Integration Tests', () => {
             mockAuthenticatedUser([{ resource: 'users', action: 'manage' }]);
 
             const mockUser = {
-                id: 'u1',
+                id: USER_UUID,
                 username: 'user1',
                 hasRole: jest.fn().mockResolvedValue(false),
                 addRole: jest.fn().mockResolvedValue(true),
             };
             User.findByPk.mockResolvedValueOnce({
-                id: 'admin-uuid',
+                id: ADMIN_UUID,
                 roles: [{ name: 'admin', permissions: [{ resource: 'users', action: 'manage' }] }],
             });
             User.findByPk.mockResolvedValueOnce(mockUser);
-            Role.findByPk.mockResolvedValue({ id: 'r1', name: 'editor' });
+            Role.findByPk.mockResolvedValue({ id: ROLE_UUID, name: 'editor' });
 
             const res = await request(app)
                 .post('/api/roles/assign')
                 .set('Authorization', `Bearer ${token}`)
-                .send({ userId: 'u1', roleId: 'r1' });
+                .send({ userId: USER_UUID, roleId: ROLE_UUID });
 
             expect(res.status).toBe(200);
             expect(res.body.success).toBe(true);
@@ -288,9 +273,27 @@ describe('Roles API Integration Tests', () => {
             const res = await request(app)
                 .post('/api/roles/assign')
                 .set('Authorization', `Bearer ${token}`)
-                .send({ userId: 'u1' });
+                .send({ userId: USER_UUID });
 
             expect(res.status).toBe(400);
+            expect(res.body.message).toBe('Error de validación');
+        });
+
+        it('debe retornar 400 si userId no es UUID', async () => {
+            const token = generateTestToken();
+            mockAuthenticatedUser([{ resource: 'users', action: 'manage' }]);
+
+            const res = await request(app)
+                .post('/api/roles/assign')
+                .set('Authorization', `Bearer ${token}`)
+                .send({ userId: 'no-uuid', roleId: ROLE_UUID });
+
+            expect(res.status).toBe(400);
+            expect(res.body.errors).toEqual(
+                expect.arrayContaining([
+                    expect.objectContaining({ field: 'userId' }),
+                ])
+            );
         });
     });
 
@@ -303,22 +306,22 @@ describe('Roles API Integration Tests', () => {
             mockAuthenticatedUser([{ resource: 'users', action: 'manage' }]);
 
             const mockUser = {
-                id: 'u1',
+                id: USER_UUID,
                 username: 'user1',
                 hasRole: jest.fn().mockResolvedValue(true),
                 removeRole: jest.fn().mockResolvedValue(true),
             };
             User.findByPk.mockResolvedValueOnce({
-                id: 'admin-uuid',
+                id: ADMIN_UUID,
                 roles: [{ name: 'admin', permissions: [{ resource: 'users', action: 'manage' }] }],
             });
             User.findByPk.mockResolvedValueOnce(mockUser);
-            Role.findByPk.mockResolvedValue({ id: 'r1', name: 'editor' });
+            Role.findByPk.mockResolvedValue({ id: ROLE_UUID, name: 'editor' });
 
             const res = await request(app)
                 .post('/api/roles/remove')
                 .set('Authorization', `Bearer ${token}`)
-                .send({ userId: 'u1', roleId: 'r1' });
+                .send({ userId: USER_UUID, roleId: ROLE_UUID });
 
             expect(res.status).toBe(200);
         });

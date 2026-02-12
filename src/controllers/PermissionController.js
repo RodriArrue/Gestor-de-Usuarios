@@ -49,21 +49,6 @@ class PermissionController {
         try {
             const { name, description, resource, action } = req.body;
 
-            if (!name || !resource || !action) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'name, resource y action son requeridos',
-                });
-            }
-
-            const validActions = ['create', 'read', 'update', 'delete', 'manage'];
-            if (!validActions.includes(action)) {
-                return res.status(400).json({
-                    success: false,
-                    message: `action debe ser uno de: ${validActions.join(', ')}`,
-                });
-            }
-
             const permission = await PermissionService.createPermission({
                 name,
                 description,
@@ -91,16 +76,6 @@ class PermissionController {
     async update(req, res) {
         try {
             const { name, description, resource, action } = req.body;
-
-            if (action) {
-                const validActions = ['create', 'read', 'update', 'delete', 'manage'];
-                if (!validActions.includes(action)) {
-                    return res.status(400).json({
-                        success: false,
-                        message: `action debe ser uno de: ${validActions.join(', ')}`,
-                    });
-                }
-            }
 
             const permission = await PermissionService.updatePermission(req.params.id, {
                 name,
@@ -150,13 +125,6 @@ class PermissionController {
         try {
             const { roleId, permissionId } = req.body;
 
-            if (!roleId || !permissionId) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'roleId y permissionId son requeridos',
-                });
-            }
-
             const result = await PermissionService.assignPermissionToRole(roleId, permissionId);
 
             res.status(200).json({
@@ -179,13 +147,6 @@ class PermissionController {
     async removeFromRole(req, res) {
         try {
             const { roleId, permissionId } = req.body;
-
-            if (!roleId || !permissionId) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'roleId y permissionId son requeridos',
-                });
-            }
 
             const result = await PermissionService.removePermissionFromRole(roleId, permissionId);
 
@@ -230,13 +191,6 @@ class PermissionController {
         try {
             const { roleId } = req.params;
             const { permissionIds } = req.body;
-
-            if (!permissionIds || !Array.isArray(permissionIds)) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'permissionIds debe ser un array',
-                });
-            }
 
             const result = await PermissionService.assignMultiplePermissionsToRole(
                 roleId,

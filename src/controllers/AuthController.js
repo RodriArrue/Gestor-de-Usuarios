@@ -9,21 +9,6 @@ class AuthController {
         try {
             const { username, email, password, firstName, lastName } = req.body;
 
-            // Validaciones básicas
-            if (!username || !email || !password) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Username, email y password son requeridos',
-                });
-            }
-
-            if (password.length < 6) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'La contraseña debe tener al menos 6 caracteres',
-                });
-            }
-
             const result = await AuthService.register({
                 username,
                 email,
@@ -52,14 +37,6 @@ class AuthController {
     async login(req, res) {
         try {
             const { email, password } = req.body;
-
-            // Validaciones básicas
-            if (!email || !password) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Email y password son requeridos',
-                });
-            }
 
             const result = await AuthService.login({ email, password });
 
