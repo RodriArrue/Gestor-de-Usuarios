@@ -102,6 +102,8 @@ describe('Auth API Integration Tests', () => {
 
             expect(res.status).toBe(400);
             expect(res.body.success).toBe(false);
+            expect(res.body.message).toBe('Error de validación');
+            expect(res.body.errors).toBeDefined();
         });
 
         it('debe retornar 400 si la contraseña es muy corta', async () => {
@@ -114,7 +116,11 @@ describe('Auth API Integration Tests', () => {
                 });
 
             expect(res.status).toBe(400);
-            expect(res.body.message).toContain('al menos 6 caracteres');
+            expect(res.body.errors).toEqual(
+                expect.arrayContaining([
+                    expect.objectContaining({ field: 'password' }),
+                ])
+            );
         });
 
         it('debe retornar 400 si el email ya existe', async () => {
@@ -175,6 +181,7 @@ describe('Auth API Integration Tests', () => {
                 .send({ email: 'test@test.com' });
 
             expect(res.status).toBe(400);
+            expect(res.body.message).toBe('Error de validación');
         });
 
         it('debe retornar 401 con credenciales inválidas', async () => {

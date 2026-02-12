@@ -49,13 +49,6 @@ class RoleController {
         try {
             const { name, description, isActive } = req.body;
 
-            if (!name) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'El nombre del rol es requerido',
-                });
-            }
-
             const role = await RoleService.createRole({
                 name,
                 description,
@@ -130,13 +123,6 @@ class RoleController {
         try {
             const { userId, roleId } = req.body;
 
-            if (!userId || !roleId) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'userId y roleId son requeridos',
-                });
-            }
-
             const result = await RoleService.assignRoleToUser(userId, roleId);
 
             res.status(200).json({
@@ -159,13 +145,6 @@ class RoleController {
     async removeFromUser(req, res) {
         try {
             const { userId, roleId } = req.body;
-
-            if (!userId || !roleId) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'userId y roleId son requeridos',
-                });
-            }
 
             const result = await RoleService.removeRoleFromUser(userId, roleId);
 
