@@ -9,10 +9,10 @@ const startServer = async () => {
         // Probar conexión a la base de datos
         await testConnection();
 
-        // Sincronizar modelos (solo en desarrollo)
+        // En producción las migraciones se ejecutan con: npm run db:migrate
+        // En desarrollo se pueden ejecutar manualmente o al iniciar
         if (process.env.NODE_ENV !== 'production') {
-            await sequelize.sync({ alter: true });
-            console.log('✅ Modelos sincronizados con la base de datos.');
+            console.log('💡 Ejecuta "npm run db:migrate" para aplicar migraciones pendientes.');
         }
 
         app.listen(PORT, () => {

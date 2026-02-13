@@ -6,7 +6,13 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "test": "jest --verbose --forceExit"
+    "test": "jest --verbose --forceExit",
+    "db:migrate": "npx sequelize-cli db:migrate",
+    "db:migrate:undo": "npx sequelize-cli db:migrate:undo:all",
+    "db:seed": "npx sequelize-cli db:seed:all",
+    "db:seed:undo": "npx sequelize-cli db:seed:undo:all",
+    "db:fresh": "npx sequelize-cli db:migrate:undo:all && npx sequelize-cli db:migrate && npx sequelize-cli db:seed:all",
+    "db:status": "npx sequelize-cli db:migrate:status"
   },
   "repository": {
     "type": "git",
@@ -33,6 +39,7 @@
   "devDependencies": {
     "jest": "^30.2.0",
     "nodemon": "^3.1.11",
+    "sequelize-cli": "^6.6.5",
     "supertest": "^7.2.2"
   }
 }
