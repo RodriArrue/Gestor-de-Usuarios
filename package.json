@@ -12,7 +12,10 @@
     "db:seed": "npx sequelize-cli db:seed:all",
     "db:seed:undo": "npx sequelize-cli db:seed:undo:all",
     "db:fresh": "npx sequelize-cli db:migrate:undo:all && npx sequelize-cli db:migrate && npx sequelize-cli db:seed:all",
-    "db:status": "npx sequelize-cli db:migrate:status"
+    "db:status": "npx sequelize-cli db:migrate:status",
+    "docker:up": "docker compose up -d --build",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f api"
   },
   "repository": {
     "type": "git",
