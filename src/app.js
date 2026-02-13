@@ -38,6 +38,9 @@ app.get('/', (req, res) => {
     });
 });
 
+// Auditoría de requests
+app.use(auditMiddleware);
+
 // Rutas de la API
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
