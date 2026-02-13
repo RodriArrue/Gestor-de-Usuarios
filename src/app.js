@@ -5,12 +5,18 @@ require('dotenv').config();
 // Importar rutas
 const authRoutes = require('./routes/auth');
 
+// Importar middlewares
+const { globalLimiter } = require('./middlewares/rateLimiter');
+
 const app = express();
 
 // Middlewares
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Rate limiting global
+app.use('/api', globalLimiter);
 
 // Health check
 app.get('/health', (req, res) => {
