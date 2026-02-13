@@ -4,6 +4,13 @@ require('dotenv').config();
 
 // Importar rutas
 const authRoutes = require('./routes/auth');
+const userRoutes = require('./routes/users');
+const roleRoutes = require('./routes/roles');
+const permissionRoutes = require('./routes/permissions');
+
+// Importar middlewares
+const { auditMiddleware } = require('./middlewares/audit');
+const { errorHandler } = require('./middlewares/errorHandler');
 
 // Importar middlewares
 const { globalLimiter } = require('./middlewares/rateLimiter');
@@ -33,5 +40,11 @@ app.get('/', (req, res) => {
 
 // Rutas de la API
 app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/roles', roleRoutes);
+app.use('/api/permissions', permissionRoutes);
+
+// Middleware de manejo de errores (DESPUÉS de todas las rutas)
+app.use(errorHandler);
 
 module.exports = app;

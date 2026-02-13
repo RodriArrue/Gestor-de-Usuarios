@@ -5,24 +5,9 @@ class AuthController {
      * POST /api/auth/register
      * Registrar un nuevo usuario
      */
-    async register(req, res) {
+    async register(req, res, next) {
         try {
             const { username, email, password, firstName, lastName } = req.body;
-
-            // Validaciones básicas
-            if (!username || !email || !password) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Username, email y password son requeridos',
-                });
-            }
-
-            if (password.length < 6) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'La contraseña debe tener al menos 6 caracteres',
-                });
-            }
 
             const result = await AuthService.register({
                 username,
@@ -38,10 +23,7 @@ class AuthController {
                 data: result,
             });
         } catch (error) {
-            res.status(400).json({
-                success: false,
-                message: error.message,
-            });
+            next(error);
         }
     }
 
@@ -49,17 +31,9 @@ class AuthController {
      * POST /api/auth/login
      * Iniciar sesión
      */
-    async login(req, res) {
+    async login(req, res, next) {
         try {
             const { email, password } = req.body;
-
-            // Validaciones básicas
-            if (!email || !password) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Email y password son requeridos',
-                });
-            }
 
             const result = await AuthService.login({ email, password });
 
@@ -69,10 +43,7 @@ class AuthController {
                 data: result,
             });
         } catch (error) {
-            res.status(401).json({
-                success: false,
-                message: error.message,
-            });
+            next(error);
         }
     }
 
@@ -80,7 +51,7 @@ class AuthController {
      * GET /api/auth/me
      * Obtener perfil del usuario autenticado
      */
-    async getProfile(req, res) {
+    async getProfile(req, res, next) {
         try {
             const user = await AuthService.getUserById(req.user.id);
 
@@ -89,10 +60,7 @@ class AuthController {
                 data: user,
             });
         } catch (error) {
-            res.status(404).json({
-                success: false,
-                message: error.message,
-            });
+            next(error);
         }
     }
 }
