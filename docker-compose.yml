@@ -1,0 +1,49 @@
+services:
+  # ========================================
+  # PostgreSQL
+  # ========================================
+  db:
+    image: postgres:16-alpine
+    container_name: gestor_usuarios_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-gestor_usuarios}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-gestor_usuarios}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ========================================
+  # API Node.js
+  # ========================================
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gestor_usuarios_api
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: 3000
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-gestor_usuarios}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      JWT_SECRET: ${JWT_SECRET:-change_me_in_production}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-24h}
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
