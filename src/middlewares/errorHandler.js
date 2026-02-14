@@ -1,4 +1,5 @@
 const { AppError } = require('../errors/AppError');
+const { env } = require('../config/env');
 
 /**
  * Middleware global de manejo de errores.
@@ -9,9 +10,9 @@ const { AppError } = require('../errors/AppError');
  */
 const errorHandler = (err, req, res, _next) => {
     // Log del error (solo stack completo en desarrollo)
-    if (process.env.NODE_ENV !== 'test') {
+    if (env.NODE_ENV !== 'test') {
         console.error(`[ERROR] ${err.name}: ${err.message}`);
-        if (process.env.NODE_ENV !== 'production') {
+        if (env.NODE_ENV !== 'production') {
             console.error(err.stack);
         }
     }
@@ -27,7 +28,7 @@ const errorHandler = (err, req, res, _next) => {
     // Error inesperado (bug, DB down, etc.)
     const statusCode = 500;
     const message =
-        process.env.NODE_ENV === 'production'
+        env.NODE_ENV === 'production'
             ? 'Error interno del servidor'
             : err.message || 'Error interno del servidor';
 
