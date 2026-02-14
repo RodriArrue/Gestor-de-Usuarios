@@ -1,8 +1,9 @@
 const app = require('./app');
 const { sequelize } = require('./models');
 const { testConnection } = require('./config');
+const { env } = require('./config/env');
 
-const PORT = process.env.PORT || 3000;
+const PORT = env.PORT;
 
 const startServer = async () => {
     try {
@@ -11,7 +12,7 @@ const startServer = async () => {
 
         // En producción las migraciones se ejecutan con: npm run db:migrate
         // En desarrollo se pueden ejecutar manualmente o al iniciar
-        if (process.env.NODE_ENV !== 'production') {
+        if (env.NODE_ENV !== 'production') {
             console.log('💡 Ejecuta "npm run db:migrate" para aplicar migraciones pendientes.');
         }
 
