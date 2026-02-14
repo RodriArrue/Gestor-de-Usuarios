@@ -72,6 +72,32 @@ class UserController {
     }
 
     /**
+     * Actualizar usuario
+     * PUT /api/users/:id
+     */
+    async update(req, res, next) {
+        try {
+            const { id } = req.params;
+            const { username, email, firstName, lastName } = req.body;
+
+            const user = await UserService.updateUser(id, {
+                username,
+                email,
+                firstName,
+                lastName,
+            });
+
+            res.json({
+                success: true,
+                message: 'Usuario actualizado correctamente',
+                data: user,
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    /**
      * Desactivar usuario (soft delete)
      * PATCH /api/users/:id/deactivate
      */

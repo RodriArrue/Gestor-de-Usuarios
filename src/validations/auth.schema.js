@@ -41,7 +41,18 @@ const loginSchema = z.object({
         .min(1, 'La contraseña es requerida'),
 });
 
+const changePasswordSchema = z.object({
+    currentPassword: z
+        .string({ required_error: 'La contraseña actual es requerida' })
+        .min(1, 'La contraseña actual es requerida'),
+    newPassword: z
+        .string({ required_error: 'La nueva contraseña es requerida' })
+        .min(6, 'La nueva contraseña debe tener al menos 6 caracteres')
+        .max(128, 'La nueva contraseña no puede exceder 128 caracteres'),
+});
+
 module.exports = {
     registerSchema,
     loginSchema,
+    changePasswordSchema,
 };

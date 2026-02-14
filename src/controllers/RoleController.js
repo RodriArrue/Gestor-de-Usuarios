@@ -7,11 +7,18 @@ class RoleController {
      */
     async getAll(req, res, next) {
         try {
-            const roles = await RoleService.getAllRoles();
+            const { page, limit, search } = req.query;
+
+            const result = await RoleService.getAllRoles({
+                page: parseInt(page) || 1,
+                limit: parseInt(limit) || 10,
+                search,
+            });
 
             res.status(200).json({
                 success: true,
-                data: roles,
+                data: result.roles,
+                pagination: result.pagination,
             });
         } catch (error) {
             next(error);

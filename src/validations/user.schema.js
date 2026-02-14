@@ -59,8 +59,37 @@ const getUsersQuerySchema = z.object({
         .optional(),
 });
 
+const updateUserSchema = z.object({
+    username: z
+        .string()
+        .min(3, 'El username debe tener al menos 3 caracteres')
+        .max(50, 'El username no puede exceder 50 caracteres')
+        .trim()
+        .optional(),
+    email: z
+        .string()
+        .email('El email no es válido')
+        .max(100, 'El email no puede exceder 100 caracteres')
+        .trim()
+        .toLowerCase()
+        .optional(),
+    firstName: z
+        .string()
+        .max(50, 'El nombre no puede exceder 50 caracteres')
+        .trim()
+        .optional()
+        .nullable(),
+    lastName: z
+        .string()
+        .max(50, 'El apellido no puede exceder 50 caracteres')
+        .trim()
+        .optional()
+        .nullable(),
+});
+
 module.exports = {
     uuidParamSchema,
     createUserSchema,
     getUsersQuerySchema,
+    updateUserSchema,
 };

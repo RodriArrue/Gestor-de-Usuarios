@@ -11,6 +11,7 @@ jest.mock('../../src/models', () => {
     const mockRole = {
         findOne: jest.fn(),
         findAll: jest.fn(),
+        findAndCountAll: jest.fn(),
         findByPk: jest.fn(),
         create: jest.fn(),
     };
@@ -75,10 +76,11 @@ describe('Roles API Integration Tests', () => {
             const token = generateTestToken();
             mockAuthenticatedUser([{ resource: 'roles', action: 'read' }]);
 
-            Role.findAll.mockResolvedValue([
+            const mockRoles = [
                 { id: ROLE_UUID, name: 'admin', permissions: [] },
                 { id: 'a0000000-0000-4000-8000-000000000099', name: 'user', permissions: [] },
-            ]);
+            ];
+            Role.findAndCountAll.mockResolvedValue({ count: 2, rows: mockRoles });
 
             const res = await request(app)
                 .get('/api/roles')
@@ -87,6 +89,7 @@ describe('Roles API Integration Tests', () => {
             expect(res.status).toBe(200);
             expect(res.body.success).toBe(true);
             expect(res.body.data).toHaveLength(2);
+            expect(res.body.pagination).toBeDefined();
         });
 
         it('debe retornar 401 sin autenticación', async () => {

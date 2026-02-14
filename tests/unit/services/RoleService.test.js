@@ -1,6 +1,7 @@
 jest.mock('../../../src/models', () => {
     const mockRole = {
         findAll: jest.fn(),
+        findAndCountAll: jest.fn(),
         findByPk: jest.fn(),
         findOne: jest.fn(),
         create: jest.fn(),
@@ -24,17 +25,19 @@ describe('RoleService', () => {
     // getAllRoles
     // =============================================
     describe('getAllRoles', () => {
-        it('debe retornar todos los roles', async () => {
+        it('debe retornar todos los roles con paginación', async () => {
             const mockRoles = [
                 { id: 'r1', name: 'admin', permissions: [] },
                 { id: 'r2', name: 'user', permissions: [] },
             ];
-            Role.findAll.mockResolvedValue(mockRoles);
+            Role.findAndCountAll.mockResolvedValue({ count: 2, rows: mockRoles });
 
             const result = await RoleService.getAllRoles();
 
-            expect(result).toHaveLength(2);
-            expect(Role.findAll).toHaveBeenCalledTimes(1);
+            expect(result.roles).toHaveLength(2);
+            expect(result.pagination).toBeDefined();
+            expect(result.pagination.total).toBe(2);
+            expect(Role.findAndCountAll).toHaveBeenCalledTimes(1);
         });
     });
 

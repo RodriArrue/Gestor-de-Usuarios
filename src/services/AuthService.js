@@ -115,6 +115,29 @@ class AuthService {
     }
 
     /**
+     * Cambiar contraseña del usuario autenticado
+     */
+    async changePassword(userId, { currentPassword, newPassword }) {
+        const user = await User.findByPk(userId);
+
+        if (!user) {
+            throw new NotFoundError('Usuario no encontrado');
+        }
+
+        const isValidPassword = await bcrypt.compare(currentPassword, user.password);
+        if (!isValidPassword) {
+            throw new UnauthorizedError('La contraseña actual es incorrecta');
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+        await user.update({ password: hashedPassword });
+
+        return { message: 'Contraseña actualizada correctamente' };
+    }
+
+    /**
      * Obtener usuario por ID (sin contraseña)
      */
     async getUserById(id) {

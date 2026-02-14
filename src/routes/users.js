@@ -3,7 +3,7 @@ const router = express.Router();
 const UserController = require('../controllers/UserController');
 const { authMiddleware, requirePermission } = require('../middlewares/auth');
 const { validate } = require('../middlewares/validate');
-const { uuidParamSchema, createUserSchema, getUsersQuerySchema } = require('../validations/user.schema');
+const { uuidParamSchema, createUserSchema, getUsersQuerySchema, updateUserSchema } = require('../validations/user.schema');
 
 // Todas las rutas requieren autenticación
 router.use(authMiddleware);
@@ -14,6 +14,9 @@ router.get('/:id', requirePermission('users', 'read'), validate({ params: uuidPa
 
 // Crear usuario (requiere permiso 'create' sobre 'users' - solo ADMIN)
 router.post('/', requirePermission('users', 'create'), validate({ body: createUserSchema }), UserController.create);
+
+// Actualizar usuario (requiere permiso 'update' sobre 'users')
+router.put('/:id', requirePermission('users', 'update'), validate({ params: uuidParamSchema, body: updateUserSchema }), UserController.update);
 
 // Desactivar usuario (requiere permiso 'delete' sobre 'users')
 router.patch('/:id/deactivate', requirePermission('users', 'delete'), validate({ params: uuidParamSchema }), UserController.deactivate);

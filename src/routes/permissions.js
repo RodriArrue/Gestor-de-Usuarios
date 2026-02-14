@@ -10,13 +10,14 @@ const {
     updatePermissionSchema,
     assignPermissionSchema,
     bulkAssignSchema,
+    getPermissionsQuerySchema,
 } = require('../validations/permission.schema');
 
 // Todas las rutas requieren autenticación
 router.use(authMiddleware);
 
 // Rutas de lectura (requieren permiso 'read' sobre 'permissions')
-router.get('/', requirePermission('permissions', 'read'), PermissionController.getAll);
+router.get('/', requirePermission('permissions', 'read'), validate({ query: getPermissionsQuerySchema }), PermissionController.getAll);
 router.get('/role/:roleId', requirePermission('permissions', 'read'), validate({ params: roleIdParamSchema }), PermissionController.getRolePermissions);
 router.get('/:id', requirePermission('permissions', 'read'), validate({ params: uuidParamSchema }), PermissionController.getById);
 

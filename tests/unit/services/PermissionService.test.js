@@ -1,6 +1,7 @@
 jest.mock('../../../src/models', () => {
     const mockPermission = {
         findAll: jest.fn(),
+        findAndCountAll: jest.fn(),
         findByPk: jest.fn(),
         findOne: jest.fn(),
         create: jest.fn(),
@@ -23,17 +24,19 @@ describe('PermissionService', () => {
     // getAllPermissions
     // =============================================
     describe('getAllPermissions', () => {
-        it('debe retornar todos los permisos', async () => {
+        it('debe retornar todos los permisos con paginación', async () => {
             const mockPermissions = [
                 { id: 'p1', name: 'users.create', resource: 'users', action: 'create' },
                 { id: 'p2', name: 'users.read', resource: 'users', action: 'read' },
             ];
-            Permission.findAll.mockResolvedValue(mockPermissions);
+            Permission.findAndCountAll.mockResolvedValue({ count: 2, rows: mockPermissions });
 
             const result = await PermissionService.getAllPermissions();
 
-            expect(result).toHaveLength(2);
-            expect(Permission.findAll).toHaveBeenCalledTimes(1);
+            expect(result.permissions).toHaveLength(2);
+            expect(result.pagination).toBeDefined();
+            expect(result.pagination.total).toBe(2);
+            expect(Permission.findAndCountAll).toHaveBeenCalledTimes(1);
         });
     });
 

@@ -16,6 +16,7 @@ jest.mock('../../src/models', () => {
     };
     const mockPermission = {
         findAll: jest.fn(),
+        findAndCountAll: jest.fn(),
         findByPk: jest.fn(),
         findOne: jest.fn(),
         create: jest.fn(),
@@ -78,10 +79,11 @@ describe('Permissions API Integration Tests', () => {
             const token = generateTestToken();
             mockAuthenticatedUser([{ resource: 'permissions', action: 'read' }]);
 
-            Permission.findAll.mockResolvedValue([
+            const mockPerms = [
                 { id: PERM_UUID, name: 'users.create', resource: 'users', action: 'create' },
                 { id: PERM_UUID_2, name: 'users.read', resource: 'users', action: 'read' },
-            ]);
+            ];
+            Permission.findAndCountAll.mockResolvedValue({ count: 2, rows: mockPerms });
 
             const res = await request(app)
                 .get('/api/permissions')
@@ -90,6 +92,7 @@ describe('Permissions API Integration Tests', () => {
             expect(res.status).toBe(200);
             expect(res.body.success).toBe(true);
             expect(res.body.data).toHaveLength(2);
+            expect(res.body.pagination).toBeDefined();
         });
 
         it('debe retornar 401 sin autenticación', async () => {

@@ -3,17 +3,38 @@ const { NotFoundError, ConflictError } = require('../errors/AppError');
 
 class RoleService {
     /**
-     * Obtener todos los roles
+     * Obtener todos los roles con paginación
      */
-    async getAllRoles() {
-        return await Role.findAll({
+    async getAllRoles({ page = 1, limit = 10, search } = {}) {
+        const offset = (page - 1) * limit;
+
+        const whereClause = {};
+
+        if (search) {
+            whereClause.name = { [require('sequelize').Op.iLike]: `%${search}%` };
+        }
+
+        const { count, rows } = await Role.findAndCountAll({
+            where: whereClause,
             include: [{
                 model: Permission,
                 as: 'permissions',
                 through: { attributes: [] },
             }],
+            limit,
+            offset,
             order: [['name', 'ASC']],
         });
+
+        return {
+            roles: rows,
+            pagination: {
+                total: count,
+                page: parseInt(page),
+                limit: parseInt(limit),
+                totalPages: Math.ceil(count / limit),
+            },
+        };
     }
 
     /**
