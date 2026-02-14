@@ -126,6 +126,56 @@ class UserService {
     }
 
     /**
+     * Actualizar datos de un usuario
+     */
+    async updateUser(id, { username, email, firstName, lastName }) {
+        const user = await User.findByPk(id);
+
+        if (!user) {
+            throw new NotFoundError('Usuario no encontrado');
+        }
+
+        // Verificar duplicados de email
+        if (email && email !== user.email) {
+            const existingEmail = await User.findOne({
+                where: { email },
+                paranoid: false,
+            });
+            if (existingEmail) {
+                throw new ConflictError('El email ya está registrado');
+            }
+        }
+
+        // Verificar duplicados de username
+        if (username && username !== user.username) {
+            const existingUsername = await User.findOne({
+                where: { username },
+                paranoid: false,
+            });
+            if (existingUsername) {
+                throw new ConflictError('El nombre de usuario ya está en uso');
+            }
+        }
+
+        await user.update({
+            username: username ?? user.username,
+            email: email ?? user.email,
+            firstName: firstName !== undefined ? firstName : user.firstName,
+            lastName: lastName !== undefined ? lastName : user.lastName,
+        });
+
+        await user.reload({
+            include: [{
+                model: Role,
+                as: 'roles',
+                through: { attributes: [] },
+            }],
+        });
+
+        return this.sanitizeUser(user);
+    }
+
+    /**
      * Desactivar usuario (soft delete)
      */
     async deactivateUser(id, currentUserId) {

@@ -59,6 +59,23 @@ const assignRoleSchema = z.object({
         .uuid('roleId debe ser un UUID válido'),
 });
 
+const getRolesQuerySchema = z.object({
+    page: z
+        .string()
+        .regex(/^\d+$/, 'page debe ser un número')
+        .optional()
+        .default('1'),
+    limit: z
+        .string()
+        .regex(/^\d+$/, 'limit debe ser un número')
+        .optional()
+        .default('10'),
+    search: z
+        .string()
+        .max(100, 'El término de búsqueda no puede exceder 100 caracteres')
+        .optional(),
+});
+
 module.exports = {
     uuidParamSchema,
     roleIdParamSchema,
@@ -66,4 +83,5 @@ module.exports = {
     createRoleSchema,
     updateRoleSchema,
     assignRoleSchema,
+    getRolesQuerySchema,
 };

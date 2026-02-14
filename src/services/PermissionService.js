@@ -3,12 +3,37 @@ const { NotFoundError, ConflictError, BadRequestError } = require('../errors/App
 
 class PermissionService {
     /**
-     * Obtener todos los permisos
+     * Obtener todos los permisos con paginación
      */
-    async getAllPermissions() {
-        return await Permission.findAll({
+    async getAllPermissions({ page = 1, limit = 10, search } = {}) {
+        const offset = (page - 1) * limit;
+
+        const whereClause = {};
+
+        if (search) {
+            const { Op } = require('sequelize');
+            whereClause[Op.or] = [
+                { name: { [Op.iLike]: `%${search}%` } },
+                { resource: { [Op.iLike]: `%${search}%` } },
+            ];
+        }
+
+        const { count, rows } = await Permission.findAndCountAll({
+            where: whereClause,
+            limit,
+            offset,
             order: [['resource', 'ASC'], ['action', 'ASC']],
         });
+
+        return {
+            permissions: rows,
+            pagination: {
+                total: count,
+                page: parseInt(page),
+                limit: parseInt(limit),
+                totalPages: Math.ceil(count / limit),
+            },
+        };
     }
 
     /**

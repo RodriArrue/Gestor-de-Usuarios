@@ -7,11 +7,18 @@ class PermissionController {
      */
     async getAll(req, res, next) {
         try {
-            const permissions = await PermissionService.getAllPermissions();
+            const { page, limit, search } = req.query;
+
+            const result = await PermissionService.getAllPermissions({
+                page: parseInt(page) || 1,
+                limit: parseInt(limit) || 10,
+                search,
+            });
 
             res.status(200).json({
                 success: true,
-                data: permissions,
+                data: result.permissions,
+                pagination: result.pagination,
             });
         } catch (error) {
             next(error);

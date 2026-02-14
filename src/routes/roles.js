@@ -10,13 +10,14 @@ const {
     createRoleSchema,
     updateRoleSchema,
     assignRoleSchema,
+    getRolesQuerySchema,
 } = require('../validations/role.schema');
 
 // Todas las rutas requieren autenticación
 router.use(authMiddleware);
 
 // Rutas de lectura (requieren permiso 'read' sobre 'roles')
-router.get('/', requirePermission('roles', 'read'), RoleController.getAll);
+router.get('/', requirePermission('roles', 'read'), validate({ query: getRolesQuerySchema }), RoleController.getAll);
 router.get('/user/:userId', requirePermission('roles', 'read'), validate({ params: userIdParamSchema }), RoleController.getUserRoles);
 router.get('/:id', requirePermission('roles', 'read'), validate({ params: uuidParamSchema }), RoleController.getById);
 router.get('/:roleId/users', requirePermission('roles', 'read'), validate({ params: roleIdParamSchema }), RoleController.getRoleUsers);
